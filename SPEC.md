@@ -1,6 +1,6 @@
 # SPEC — Suivre Notre Argent (nom de travail) — MVP
 
-> Statut : v0.1 — spécification du MVP
+> Statut : v0.2 — spécification du MVP (référentiel entreprises « API d'abord », ADR 0004)
 > Nom et domaine non arrêtés (voir §14 Décisions ouvertes)
 > Ce document est la source de vérité fonctionnelle et technique. Toute évolution de périmètre passe par une mise à jour de ce fichier.
 
@@ -52,17 +52,26 @@ Filtres avancés de recherche, export CSV, partage social, vue payeur, vue group
 
 | Source | Rôle | Contenu utile | Identifiant bénéficiaire | Fréquence visée |
 |--------|------|---------------|--------------------------|-----------------|
-| **SIRENE** (INSEE, stock sur data.gouv.fr) | Référentiel entreprises | Dénomination, NAF, catégorie juridique, catégorie d'entreprise, siège, état, statut de diffusion | SIREN / SIRET | Mensuelle |
+| **API Sirene 3.11** (INSEE, `api.insee.fr/api-sirene/3.11`) | Référentiel entreprises, **interrogé à la demande** (pas de copie du stock) | Dénomination, NAF, catégorie juridique, catégorie d'entreprise, siège, état, statut de diffusion | SIREN / SIRET | Mise à jour quotidienne par l'INSEE ; rafraîchissement de notre référentiel minimal : hebdomadaire |
 | **DECP consolidées** (data.gouv.fr, format tabulaire) | Canal `MARCHE` | Acheteur, titulaires, objet, montant, nature (accord-cadre ou non), date de notification, modifications | SIRET du titulaire (généralement présent) | Hebdomadaire |
 | **TAM** (Transparency Award Module, Commission européenne) | Canal `AIDE_ETAT` | Autorité d'octroi, bénéficiaire, montant, instrument, date, régime | Identifiant national (SIREN) souvent présent, sinon nom | Mensuelle |
 | **Kohesio** (Commission européenne) | Canal `FONDS_UE` | Projet, bénéficiaire, montant UE, programme, dates | Nom du bénéficiaire (SIREN rarement présent) | Mensuelle |
+
+### Services d'appui (hors canaux)
+
+| Service | Rôle | Contraintes |
+|---------|------|-------------|
+| **API Sirene 3.11** | Existence et statut des SIREN, identité détaillée de la fiche (lecture en direct) | Clé API (en-tête `X-INSEE-Api-Key-Integration`, secret `INSEE_API_KEY`) ; **30 req/min et 2 000 req/h** ; requêtes multicritères jusqu'à 1 000 unités par appel |
+| **API Recherche d'entreprises** (DINUM, `recherche-entreprises.api.gouv.fr`) | Candidats pour le rattachement par nom ; repli de la recherche pour les entreprises sans flux | Sans clé ; limite de débit à confirmer au spike |
+
+Principe (ADR 0004) : **une donnée disponible par API n'est pas recopiée en base**, sauf les champs strictement nécessaires aux calculs, à la recherche et au respect du RGPD (§6.3).
 
 ### Pièges connus à traiter
 
 - **DECP** : un même marché peut apparaître sur plusieurs lignes (co-titulaires, avenants) ; doublons de publication ; montants aberrants (1 €, 1 Md€) ; accords-cadres exprimés en plafond ; SIRET parfois mal saisi.
 - **TAM** : seuil de publication (≥ 100 k€ dans le cas général) : les aides en dessous sont invisibles ; montants parfois en fourchette.
 - **Kohesio** : rattachement par nom uniquement dans la majorité des cas : forte dépendance au moteur de réconciliation.
-- **SIRENE** : les unités en **diffusion partielle** ne doivent jamais être exposées nominativement.
+- **SIRENE** : les unités en **diffusion partielle** (`statutDiffusion = P`) ne doivent jamais être exposées nominativement ; le statut est à relire à chaque rafraîchissement (oppositions possibles à tout moment). Quotas API bas : toute lecture en direct passe par un cache et un disjoncteur.
 
 ## 5. Spécifications fonctionnelles
 
@@ -70,7 +79,8 @@ Filtres avancés de recherche, export CSV, partage social, vue payeur, vue group
 
 **User story** : en tant que visiteur, je tape un nom, un SIREN ou un SIRET et j'accède à la fiche de l'entreprise.
 
-- Autocomplétion dès 3 caractères, tolérante aux fautes et aux accents (pg_trgm).
+- Autocomplétion dès 3 caractères, tolérante aux fautes et aux accents (pg_trgm), sur le **référentiel local des bénéficiaires** (entreprises ayant au moins un flux, §6.3).
+- Si l'entreprise cherchée n'a aucun flux tracé : repli sur l'API Recherche d'entreprises, résultat affiché avec le badge « aucun flux tracé ».
 - Un SIREN (9 chiffres) ou un SIRET (14 chiffres) valide redirige directement vers la fiche.
 - Chaque résultat affiche : dénomination, commune du siège, libellé NAF, **total tracé (borne ferme)**, badge « aucun flux tracé » le cas échéant.
 - Tri : pertinence textuelle, puis total tracé décroissant.
@@ -80,7 +90,7 @@ Filtres avancés de recherche, export CSV, partage social, vue payeur, vue group
 
 - Recherche « societe generale » trouve « SOCIÉTÉ GÉNÉRALE ».
 - Faute d'une lettre tolérée sur un nom de plus de 6 caractères.
-- p95 < 200 ms sur le jeu de données complet.
+- p95 < 200 ms sur le référentiel local complet (le repli externe est hors de ce budget et chargé en complément).
 
 ### F2 — Fiche entreprise
 
@@ -88,7 +98,7 @@ Filtres avancés de recherche, export CSV, partage social, vue payeur, vue group
 
 Contenu, dans l'ordre d'affichage :
 
-1. **En-tête identité** : dénomination, SIREN, NAF, commune, catégorie d'entreprise, état (active / cessée), lien vers l'Annuaire des entreprises.
+1. **En-tête identité** : dénomination, SIREN, NAF, commune, état (active / cessée) depuis le référentiel local ; catégorie d'entreprise, catégorie juridique, adresse, date de création **lues en direct** via l'API Sirene (cache 24 h) ; lien vers l'Annuaire des entreprises. Si l'API est indisponible ou le quota atteint, la fiche s'affiche avec l'identité minimale, sans erreur.
 2. **Montant tracé** : chiffre principal = borne ferme ; barre de fourchette ferme → plafond ; période couverte (première et dernière année).
 3. **Répartition par canal** : montant et nombre de flux par canal, couleur fixe par canal.
 4. **Top payeurs** : sankey payeurs → entreprise (10 premiers, le reste agrégé en « Autres »), avec alternative tableau.
@@ -99,8 +109,8 @@ Contenu, dans l'ordre d'affichage :
 **Critères d'acceptation**
 
 - Chaque chiffre affiché est recalculable à partir de la liste F3.
-- Une entreprise sans flux affiche une fiche valide avec message explicite et couverture.
-- p95 < 300 ms (lecture depuis le mart).
+- Une entreprise sans flux (absente du référentiel local) affiche une fiche valide, construite depuis l'API Sirene, avec message explicite et couverture ; si elle est non diffusible ou personne physique, aucune donnée nominative n'est affichée.
+- p95 < 300 ms pour les montants (lecture depuis le mart) ; l'identité détaillée a son propre budget (p95 < 1 s, cache compris) et ne bloque jamais l'affichage des montants.
 
 ### F3 — Détail et traçabilité des flux
 
@@ -141,23 +151,36 @@ mart  → agrégats pré-calculés servis par l'API
 ops   → exploitation (sources, exécutions, rejets, signalements)
 ```
 
+Le référentiel entreprises n'est **pas** une copie de SIRENE : seules les entreprises bénéficiaires d'au moins un flux y figurent, avec les champs minimaux listés au §6.3 (ADR 0004).
+
 ### 6.1 Schéma `ops`
 
 | Table | Colonnes clés |
 |-------|---------------|
-| `ops.source` | `code` (PK : `SIRENE`, `DECP`, `TAM`, `KOHESIO`), `libelle`, `producteur`, `licence`, `url_reference`, `frequence` |
+| `ops.source` | `code` (PK : `SIRENE`, `RECHERCHE_ENTREPRISES`, `DECP`, `TAM`, `KOHESIO`), `libelle`, `producteur`, `licence`, `url_reference`, `frequence` |
 | `ops.ingestion_run` | `id`, `source_code`, `version_source` (date ou hash du jeu), `debut`, `fin`, `statut` (`EN_COURS`, `SUCCES`, `ECHEC`), `lus`, `charges`, `rejetes`, `checksum_fichier` |
 | `ops.rejet` | `run_id`, `source_record_id`, `motif`, `payload` (jsonb) |
 | `ops.signalement` | `id`, `siren`, `flux_id` (nullable), `type`, `commentaire`, `email` (nullable), `cree_le`, `statut` |
 
 ### 6.2 Schéma `raw`
 
-Une table par source : `raw.<source>_record(run_id, source_record_id, payload jsonb, checksum, recu_le)`.
+Une table par source de flux (`DECP`, `TAM`, `KOHESIO`) : `raw.<source>_record(run_id, source_record_id, payload jsonb, checksum, recu_le)`. Pas de table `raw` pour les API d'appui (SIRENE, Recherche d'entreprises) : elles restent la référence et ne sont pas archivées.
 Objectif : pouvoir **rejouer la transformation** sans retélécharger, et prouver ce qu'on a reçu.
 
 ### 6.3 Schéma `core`
 
-**`core.entreprise`** : `siren` (PK), `denomination`, `naf_code`, `naf_libelle`, `categorie_juridique`, `categorie_entreprise`, `commune_siege`, `departement_siege`, `date_creation`, `etat` (`ACTIVE`, `CESSEE`), `diffusible` (bool), `personne_physique` (bool).
+**`core.entreprise`** — référentiel **minimal**, limité aux bénéficiaires d'au moins un flux : `siren` (PK), `denomination`, `naf_code`, `commune_siege`, `departement_siege`, `etat` (`ACTIVE`, `CESSEE`), `diffusible` (bool), `personne_physique` (bool), `rafraichi_le`.
+
+| Champ | Raison du stockage local |
+|-------|--------------------------|
+| `siren`, `denomination` | Recherche floue (pg_trgm) |
+| `naf_code`, `commune_siege`, `departement_siege` | Affichés dans chaque résultat de recherche ; bonus de rattachement |
+| `diffusible`, `personne_physique` | Obligation RGPD : filtrage avant tout affichage et dans les agrégats, indépendamment de la disponibilité de l'API |
+| `etat` | Identité minimale en mode dégradé |
+
+Tout autre champ d'identité est lu en direct via l'API Sirene. Une entreprise dont tous les flux disparaissent est retirée du référentiel au rafraîchissement suivant.
+
+**`core.naf`** : `code` (PK), `libelle`. Nomenclature publique statique (~730 codes), chargée depuis l'INSEE ; conservée localement car nécessaire à chaque résultat de recherche.
 
 **`core.payeur`** : `id`, `identifiant` (SIRET/SIREN ou identifiant UE), `nom`, `type` (`ETAT`, `OPERATEUR`, `COLLECTIVITE`, `HOPITAL`, `UE`, `AUTRE`).
 
@@ -212,9 +235,11 @@ Conséquence assumée : la somme des bornes plafond sur plusieurs entreprises pe
 
 Ordre d'application :
 
-1. **SIREN/SIRET présent dans la source** : SIRET → SIREN (9 premiers chiffres), contrôle de Luhn, existence dans `core.entreprise` → `SIREN_SOURCE`, confiance 1.
-2. **Correspondance par nom** : normalisation (majuscules, accents, formes juridiques retirées), similarité pg_trgm, bonus si commune ou département concordant → `RESOLU_AUTO` si confiance ≥ seuil (défaut 0,9).
+1. **SIREN/SIRET présent dans la source** : SIRET → SIREN (9 premiers chiffres), contrôle de Luhn, existence vérifiée dans `core.entreprise` ou, à défaut, via l'API Sirene (requêtes groupées, jusqu'à 1 000 SIREN par appel) puis ajout au référentiel minimal → `SIREN_SOURCE`, confiance 1.
+2. **Correspondance par nom** : candidats obtenus via l'API Recherche d'entreprises (et le référentiel local) ; normalisation (majuscules, accents, formes juridiques retirées), score de similarité calculé chez nous, bonus si commune ou département concordant → `RESOLU_AUTO` si confiance ≥ seuil (défaut 0,9), puis ajout au référentiel minimal.
 3. Sinon → `NON_RESOLU` : le flux est conservé, **jamais rattaché**, et compté dans les statistiques de la page état des sources.
+
+Les appels externes respectent les quotas (file d'attente, reprise). Pour garantir l'idempotence, un rattachement déjà établi pour un `(source_code, source_record_id)` est réutilisé lors d'un rejeu ; il n'est recalculé que sur demande explicite.
 
 Règle : on préfère ne pas rattacher plutôt que de rattacher à tort. Le seuil est un paramètre, calibré sur un échantillon étiqueté manuellement (lot 5).
 
@@ -263,13 +288,14 @@ Seuls les flux `qualite = OK` et `rattachement IN (SIREN_SOURCE, RESOLU_AUTO)` e
 | `db` | Lib | Migrations Flyway, génération du code jOOQ | — |
 | `domain` | Lib | Types métier partagés (canal, bornes, règles de calcul pures), sans dépendance Spring ni SQL | — |
 | `ingestion-core` | Lib | Téléchargement avec checksum et cache, écriture `raw`, suivi `ops.ingestion_run`, gestion des rejets, provenance, upsert `core.flux`, rafraîchissement du mart | `db`, `domain` |
-| `reconciliation` | Lib | Normalisation des identifiants et des noms, rattachement SIREN, score de confiance | `db`, `domain` |
-| `ingestion-sirene` | App Spring Batch | Chargement du référentiel entreprises | `ingestion-core` |
+| `referentiel-client` | Lib | Clients HTTP de l'API Sirene et de l'API Recherche d'entreprises : quotas, cache, disjoncteur, mode dégradé | `domain` |
+| `reconciliation` | Lib | Normalisation des identifiants et des noms, rattachement SIREN, score de confiance | `db`, `domain`, `referentiel-client` |
+| `ingestion-sirene` | App Spring Batch | Rafraîchissement du référentiel minimal via l'API Sirene (statut de diffusion, état, dénomination) ; chargement de `core.naf` | `ingestion-core`, `referentiel-client` |
 | `ingestion-decp` | App Spring Batch | Canal `MARCHE` | `ingestion-core`, `reconciliation` |
 | `ingestion-tam` | App Spring Batch | Canal `AIDE_ETAT` | `ingestion-core`, `reconciliation` |
 | `ingestion-kohesio` | App Spring Batch | Canal `FONDS_UE` | `ingestion-core`, `reconciliation` |
 | `contract` | Spec | `openapi.yaml`, source de vérité de l'API | — |
-| `api` | App Spring Boot | Exposition REST en lecture (+ signalements) | `db`, `domain`, `contract` |
+| `api` | App Spring Boot | Exposition REST en lecture (+ signalements) ; identité détaillée et repli de recherche via `referentiel-client` | `db`, `domain`, `contract`, `referentiel-client` |
 | `front` | App Angular | Interface | `contract` (client généré) |
 
 **Règles de dépendance** (vérifiées par ArchUnit en TU) :
@@ -277,6 +303,7 @@ Seuls les flux `qualite = OK` et `rattachement IN (SIREN_SOURCE, RESOLU_AUTO)` e
 - Un module `ingestion-<source>` ne dépend jamais d'un autre module `ingestion-<source>`.
 - `api` ne dépend d'aucun module `ingestion-*` ni de `reconciliation`.
 - `domain` ne dépend ni de Spring, ni de jOOQ.
+- `referentiel-client` ne dépend ni de `db`, ni de jOOQ : il n'écrit jamais en base.
 - Seul `ingestion-core` écrit dans `core.flux` ; l'`api` n'écrit que dans `ops.signalement`.
 
 ### 7.3 Pipeline d'ingestion (commun à toutes les sources)
@@ -321,7 +348,8 @@ Base : `/api/v1`. Lecture seule sauf les signalements. Pas d'authentification en
 | Méthode | Endpoint | Usage |
 |---------|----------|-------|
 | GET | `/entreprises?q=&page=&size=` | F1 : recherche et autocomplétion |
-| GET | `/entreprises/{siren}` | F2 : synthèse (identité, bornes, répartition par canal, période, couverture) |
+| GET | `/entreprises/{siren}` | F2 : synthèse (identité minimale, bornes, répartition par canal, période, couverture) — données locales uniquement |
+| GET | `/entreprises/{siren}/identite` | F2 : identité détaillée lue via l'API Sirene (cache 24 h) ; réponse partielle signalée si l'API est indisponible |
 | GET | `/entreprises/{siren}/payeurs?limit=` | F2 : top payeurs (sankey) |
 | GET | `/entreprises/{siren}/chronologie` | F2 : montants par année × canal |
 | GET | `/entreprises/{siren}/flux?canal=&annee=&payeur=&page=&size=&sort=` | F3 : détail des flux avec provenance |
@@ -340,6 +368,7 @@ Base : `/api/v1`. Lecture seule sauf les signalements. Pas d'authentification en
 - Cache HTTP : `ETag` et `Cache-Control` (données modifiées uniquement à l'ingestion).
 - Rate limiting sur `/entreprises` et `/signalements`.
 - L'API se connecte avec un rôle PostgreSQL en **lecture seule**, sauf sur `ops.signalement`.
+- Appels aux API externes : timeout court, cache, disjoncteur ; une indisponibilité externe dégrade l'identité ou le repli de recherche, jamais les montants.
 
 ## 9. Design
 
@@ -414,7 +443,7 @@ Tout module est testé aux trois niveaux applicables. **Pas de H2** : les TI tou
 | Niveau | Back (Java) | Front (Angular) |
 |--------|-------------|-----------------|
 | **TU** | JUnit 5, AssertJ. Règles de calcul (`domain`), mappings source → flux, normalisation et scoring de réconciliation, ArchUnit | Vitest et Angular Testing Library : composants, formatage des montants, services |
-| **TI** | Testcontainers PostgreSQL : migrations Flyway, requêtes jOOQ, jobs d'ingestion complets sur fixtures, rafraîchissement mart, endpoints API (MockMvc ou RestAssured) avec **validation des réponses contre `openapi.yaml`** | Tests d'intégration des pages avec client API mocké au niveau HTTP |
+| **TI** | API externes simulées par **WireMock** (aucun appel réel en CI), y compris quota dépassé et indisponibilité ; Testcontainers PostgreSQL : migrations Flyway, requêtes jOOQ, jobs d'ingestion complets sur fixtures, rafraîchissement mart, endpoints API (MockMvc ou RestAssured) avec **validation des réponses contre `openapi.yaml`** | Tests d'intégration des pages avec client API mocké au niveau HTTP |
 | **TS** | — | **Playwright** sur la stack complète (`docker-compose` + jeu de données de démonstration) : parcours recherche → fiche → détail → source ; accessibilité automatisée (axe-core) |
 
 **Tests spécifiques à l'ingestion**
@@ -454,6 +483,7 @@ Tout module est testé aux trois niveaux applicables. **Pas de H2** : les TI tou
 
 - En-têtes de sécurité (CSP, HSTS, etc.), dépendances scannées en CI.
 - Rôles PostgreSQL distincts : ingestion (écriture), API (lecture seule + `ops.signalement`).
+- Clés d'API externes (`INSEE_API_KEY`) uniquement en secrets d'environnement, jamais dans le dépôt ni dans les logs.
 
 ## 12. Découpage en lots
 
@@ -462,7 +492,7 @@ Chaque lot se termine avec : tests TU / TI / TS applicables au vert, documentati
 | Lot | Contenu | Définition de terminé |
 |-----|---------|-----------------------|
 | **0 — Socle** | Monorepo Gradle + Angular, CI, `docker-compose` PostgreSQL, module `db` (Flyway + jOOQ), `contract` (OpenAPI vide), règles ArchUnit, TS Playwright « smoke ». **Spike sources** : endpoints, formats, volumétrie réels des 4 sources, consignés dans `docs/sources/` | `./gradlew build` et pipeline CI verts ; versions figées dans `CLAUDE.md` |
-| **1 — Référentiel** | `ingestion-core` (pipeline §7.3), `ingestion-sirene`, schémas `ops`, `raw`, `core.entreprise` | Référentiel chargé, idempotence prouvée en TI |
+| **1 — Référentiel** | `ingestion-core` (pipeline §7.3), `referentiel-client`, `ingestion-sirene` (rafraîchissement API), schémas `ops`, `raw`, `core.entreprise`, `core.naf` | Rafraîchissement du référentiel minimal prouvé en TI (WireMock), idempotence prouvée, quotas et mode dégradé testés |
 | **2 — Marchés** | `ingestion-decp`, règles de bornes et de déduplication, montants aberrants, rattachement par SIRET | Golden files DECP verts ; seuils aberrants calibrés |
 | **3 — API** | Mart, endpoints recherche, fiche, payeurs, chronologie, flux, sources | TI API validées contre le contrat ; p95 respectés sur volumétrie réelle |
 | **4 — Front cœur** | Design tokens, thèmes, recherche, fiche entreprise, détail des flux, SSR | Parcours TS recherche → fiche → source ; axe-core sans erreur |
@@ -490,3 +520,5 @@ Chaque lot se termine avec : tests TU / TI / TS applicables au vert, documentati
 | ~~Licence du code~~ | **Tranché : AGPL-3.0-or-later** (voir `docs/adr/0003-licence-agpl.md`) | Lot 0 ✔ |
 | Seuils (aberrants, confiance de rattachement) | Valeurs par défaut du §6, à calibrer | Lots 2 et 5 |
 | Durée de conservation des signalements | 6 à 12 mois | Lot 6 |
+| Quota API Sirene | Accès public (30 req/min, 2 000 req/h) suffisant ? Sinon demande d'un quota supérieur à l'INSEE | Lot 7 (selon trafic et exploration des robots) |
+| Accès à `recherche-entreprises.api.gouv.fr` et `www.data.gouv.fr` depuis l'environnement cloud | Connexions coupées à ce jour ; à résoudre ou contourner (session locale) | Lot 0 (spike) |
