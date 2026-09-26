@@ -1,0 +1,32 @@
+# Gradle / Java
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.log
+hs_err_pid*
+
+# Node / Angular
+node_modules/
+front/dist/
+front/.angular/
+front/coverage/
+front/test-results/
+front/playwright-report/
+
+# IDE / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Environnement local
+.env
+.env.*
+!.env.example
+
+# Données téléchargées (cache d'ingestion) : jamais versionnées, seules /fixtures le sont
+/data/
+*.zip
+*.parquet
