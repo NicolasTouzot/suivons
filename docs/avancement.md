@@ -49,5 +49,5 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 - API INSEE **Melodi** (`https://api.insee.fr/melodi`) : jeux statistiques potentiellement utiles ; à explorer au spike (étape 9), usage à valider (SPEC §4/§6.3, ADR 0004).
 
-- Rate limit réel de l'API Recherche d'entreprises (spike).
+- API Recherche d'entreprises : limite documentée (openapi du 2026-09-26) de **7 req/s par IP et 30 req/s par ASN**, avec 429 et `Retry-After` ; l'en-tête `User-Agent` descriptif est recommandé. Depuis l'environnement cloud, retesté le 2026-09-26 : la connexion TLS s'établit via le proxy, puis l'amont coupe (39 octets reçus, `ws_closed_mid_exchange`), alors que `annuaire-entreprises.data.gouv.fr` répond 200. Il s'agit donc d'un filtrage côté fournisseur (IP ou ASN du datacenter), et non du proxy. Conséquences : spike à faire en session locale ; **hébergement de production** à choisir en tenant compte de la limite par ASN (le repli de recherche F1 de l'`api` en dépend).
 - Quota API Sirene suffisant face aux robots d'indexation (lot 7).
