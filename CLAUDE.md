@@ -28,13 +28,18 @@ docker-compose.yml    PostgreSQL + stack complète pour le dev et les TS
 
 ## Versions
 
-À figer au lot 0 (dernières versions stables) et à reporter ici :
+Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côté back : `gradle/libs.versions.toml` ; les bibliothèques gérées par le BOM Spring Boot suivent le BOM et n'y sont pas versionnées.
 
-- Java : _à figer_
-- Spring Boot / Spring Batch : _à figer_
-- PostgreSQL : _à figer_
-- Angular / Node : _à figer_
-- jOOQ, Flyway, Testcontainers, Playwright, ECharts : _à figer_
+- Java : 25 (LTS), via toolchain Gradle (JDK téléchargé automatiquement par foojay s'il est absent)
+- Gradle : 9.8.0 (wrapper)
+- Spring Boot : 4.1.1 — BOM : Spring Framework 7.0.9, Spring Batch 6.0.5
+- PostgreSQL : 18 (image `postgres:18.6`), pilote JDBC 42.7.13 (BOM)
+- jOOQ : 3.21.7 (BOM ; le plugin de codegen doit rester aligné) — Flyway : 12.4.0 (BOM)
+- Tests : JUnit Jupiter 6.0.3, AssertJ 3.27.7, Testcontainers 2.0.5 (BOM) ; ArchUnit 1.5.1, WireMock 3.13.2 (standalone), swagger-request-validator 3.0.0
+- OpenAPI Generator (plugin Gradle) : 7.25.0
+- Node : 24 LTS (24.21.0) — Angular : 22.2 — TypeScript : 6.0 (imposé par Angular 22)
+- Front outillage : Vitest 5.0, ESLint 10 + angular-eslint 22.5, Playwright 1.63, @axe-core/playwright 4.13
+- ECharts : 6.1 via ngx-echarts 22.0
 
 ## Commandes
 

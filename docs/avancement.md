@@ -10,8 +10,8 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 |-------|---------|------|
 | 0 | Amorçage : spec, conventions, licence, ADR 0001-0003 | ✅ fait |
 | — | ADR 0004 « référentiel API d'abord », SPEC v0.2 | ✅ fait |
-| 1 | Figer les versions (dernières stables), wrapper Gradle, catalogue `gradle/libs.versions.toml`, report dans `CLAUDE.md` | ⏭️ prochaine |
-| 2 | Monorepo Gradle : modules du §7.2 (dont `referentiel-client`), convention plugins, source set `integrationTest` | à faire |
+| 1 | Figer les versions (dernières stables), wrapper Gradle, catalogue `gradle/libs.versions.toml`, report dans `CLAUDE.md` | ✅ fait |
+| 2 | Monorepo Gradle : modules du §7.2 (dont `referentiel-client`), convention plugins, source set `integrationTest` | ⏭️ prochaine |
 | 3 | `docker-compose` PostgreSQL (`pg_trgm`, `unaccent`), module `db` : `V1__init.sql` (4 schémas + extensions, aucune table), codegen jOOQ via Testcontainers | à faire |
 | 4 | `contract` : `openapi.yaml` vide (Problem RFC 9457), lint, génération Spring + client TS câblée | à faire |
 | 5 | `api` minimal : démarrage, Actuator, logs JSON, TI | à faire |
@@ -25,6 +25,15 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 - Licence AGPL-3.0-or-later (ADR 0003). Conséquence : lien « Code source » dans le front (lot 6 au plus tard), dépendances compatibles AGPL.
 - Pas de copie de SIRENE ; référentiel minimal des bénéficiaires, identité lue en direct (ADR 0004).
 - API INSEE : **API Sirene 3.11**, plan « Accès public » (clé API, 30 req/min, 2 000 req/h). En production, la clé est lue dans `INSEE_API_KEY`. Dans l'environnement cloud Claude, elle est injectée par le proxy (Identifiants API, hôte `api.insee.fr`) : le client ne doit pas envoyer l'en-tête si la variable est vide.
+
+- Versions : les bibliothèques gérées par le BOM Spring Boot suivent le BOM (ex. Flyway 12.4 et non 13.8, jOOQ 3.21.7 et non 3.21.9) ; seules les dépendances hors BOM sont prises à leur dernière version. PostgreSQL 18 (la 19 est en bêta). TypeScript 6.0 et non 7.0 (contrainte d'Angular 22).
+- API INSEE : vérifié le 2026-09-26, `GET https://api.insee.fr/api-sirene/3.11/siren/552032534` répond 200 sans en-tête envoyé (clé injectée par le proxy).
+
+## Environnement cloud : outillage (constaté le 2026-09-26)
+
+- JDK installé : 21 ; le JDK 25 de la toolchain est téléchargé par Gradle (foojay/Adoptium joignables).
+- Node installé : 22.22.2, **inférieur au minimum d'Angular 22** (`^22.22.3 || ^24.15.0`) : installer Node 24 avant l'étape 7.
+- Docker : client présent, **démon non démarré** (`/var/run/docker.sock` absent) : à résoudre avant l'étape 3 (Testcontainers, codegen jOOQ).
 
 ## Accès réseau depuis l'environnement cloud (constaté le 2026-09-26)
 
