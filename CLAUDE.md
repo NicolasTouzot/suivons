@@ -9,6 +9,7 @@ Site citoyen qui trace l'argent public reçu par les entreprises, chaque montant
 ## Structure du repo
 
 ```
+/build-logic          Plugins de convention Gradle (suivons.java-library, suivons.spring-boot-app)
 /db                   Migrations Flyway + génération jOOQ
 /domain               Types et règles métier purs (sans Spring, sans SQL)
 /ingestion-core       Pipeline commun d'ingestion (Spring Batch)
@@ -40,6 +41,12 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 - Node : 24 LTS (24.21.0) — Angular : 22.2 — TypeScript : 6.0 (imposé par Angular 22)
 - Front outillage : Vitest 5.0, ESLint 10 + angular-eslint 22.5, Playwright 1.63, @axe-core/playwright 4.13
 - ECharts : 6.1 via ngx-echarts 22.0
+
+## Organisation du build
+
+- Paquet racine Java : `fr.suivons.<module>` (ex. `fr.suivons.ingestion.decp`), groupe Gradle `fr.suivons`.
+- Un module applique **un** plugin de convention : `suivons.java-library` (bibliothèque) ou `suivons.spring-boot-app` (exécutable). Aucune version ni configuration de compilation dans les `build.gradle.kts` des modules.
+- Suites de tests : `test` (TU, dans `./gradlew build`) et `integrationTest` (TI, `src/integrationTest/java`, hors `build`).
 
 ## Commandes
 

@@ -11,8 +11,8 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 | 0 | Amorçage : spec, conventions, licence, ADR 0001-0003 | ✅ fait |
 | — | ADR 0004 « référentiel API d'abord », SPEC v0.2 | ✅ fait |
 | 1 | Figer les versions (dernières stables), wrapper Gradle, catalogue `gradle/libs.versions.toml`, report dans `CLAUDE.md` | ✅ fait |
-| 2 | Monorepo Gradle : modules du §7.2 (dont `referentiel-client`), convention plugins, source set `integrationTest` | ⏭️ prochaine |
-| 3 | `docker-compose` PostgreSQL (`pg_trgm`, `unaccent`), module `db` : `V1__init.sql` (4 schémas + extensions, aucune table), codegen jOOQ via Testcontainers | à faire |
+| 2 | Monorepo Gradle : modules du §7.2 (dont `referentiel-client`), convention plugins, source set `integrationTest` | ✅ fait |
+| 3 | `docker-compose` PostgreSQL (`pg_trgm`, `unaccent`), module `db` : `V1__init.sql` (4 schémas + extensions, aucune table), codegen jOOQ via Testcontainers | ⏭️ prochaine |
 | 4 | `contract` : `openapi.yaml` vide (Problem RFC 9457), lint, génération Spring + client TS câblée | à faire |
 | 5 | `api` minimal : démarrage, Actuator, logs JSON, TI | à faire |
 | 6 | Règles ArchUnit (§7.2, dont `referentiel-client` sans `db`) | à faire |
@@ -26,6 +26,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 - Pas de copie de SIRENE ; référentiel minimal des bénéficiaires, identité lue en direct (ADR 0004).
 - API INSEE : **API Sirene 3.11**, plan « Accès public » (clé API, 30 req/min, 2 000 req/h). La clé est lue dans `INSEE_API_KEY`, en production comme dans l'environnement cloud Claude (variable d'environnement classique). Le client n'envoie l'en-tête `X-INSEE-Api-Key-Integration` **que** sur `/api-sirene/*`.
 
+- Build (étape 2) : plugins de convention dans `build-logic` ; paquet racine `fr.suivons` (lié au nom de travail, à renommer si le nom définitif change, §14). Chaque application a une classe `*Application` et un TU de démarrage du contexte ; `contract` est une bibliothèque Java qui recevra les interfaces générées (étape 4).
 - Versions : les bibliothèques gérées par le BOM Spring Boot suivent le BOM (ex. Flyway 12.4 et non 13.8, jOOQ 3.21.7 et non 3.21.9) ; seules les dépendances hors BOM sont prises à leur dernière version. PostgreSQL 18 (la 19 est en bêta). TypeScript 6.0 et non 7.0 (contrainte d'Angular 22).
 - API INSEE : vérifié le 2026-09-26, `GET https://api.insee.fr/api-sirene/3.11/siren/552032534` répond 200 avec la clé injectée par le proxy. Cette injection s'appliquait à tout `api.insee.fr` et faisait échouer **Melodi** (`/melodi/*`, API ouverte sans abonnement possible) en 401 : injection proxy abandonnée au profit de la variable d'environnement. Revérifié le 2026-09-26 : Sirene 200 avec `INSEE_API_KEY`, 401 sans ; Melodi 200 sans clé.
 
@@ -33,6 +34,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 - JDK installé : 21 ; le JDK 25 de la toolchain est téléchargé par Gradle (foojay/Adoptium joignables).
 - Node installé : 22.22.2, **inférieur au minimum d'Angular 22** (`^22.22.3 || ^24.15.0`) : installer Node 24 avant l'étape 7.
+- Maven Central répond parfois **429 Too Many Requests** depuis le cloud (premier téléchargement des dépendances) : relancer avec `./gradlew build --no-parallel --max-workers=1`, le cache Gradle absorbe ensuite.
 - Docker : client présent, **démon non démarré** (`/var/run/docker.sock` absent) : à résoudre avant l'étape 3 (Testcontainers, codegen jOOQ).
 
 ## Accès réseau depuis l'environnement cloud (constaté le 2026-09-26)
