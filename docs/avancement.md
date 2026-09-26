@@ -24,10 +24,10 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 - Licence AGPL-3.0-or-later (ADR 0003). Conséquence : lien « Code source » dans le front (lot 6 au plus tard), dépendances compatibles AGPL.
 - Pas de copie de SIRENE ; référentiel minimal des bénéficiaires, identité lue en direct (ADR 0004).
-- API INSEE : **API Sirene 3.11**, plan « Accès public » (clé API, 30 req/min, 2 000 req/h). En production, la clé est lue dans `INSEE_API_KEY`. Dans l'environnement cloud Claude, elle est injectée par le proxy (Identifiants API, hôte `api.insee.fr`) : le client ne doit pas envoyer l'en-tête si la variable est vide.
+- API INSEE : **API Sirene 3.11**, plan « Accès public » (clé API, 30 req/min, 2 000 req/h). La clé est lue dans `INSEE_API_KEY`, en production comme dans l'environnement cloud Claude (variable d'environnement classique). Le client n'envoie l'en-tête `X-INSEE-Api-Key-Integration` **que** sur `/api-sirene/*`.
 
 - Versions : les bibliothèques gérées par le BOM Spring Boot suivent le BOM (ex. Flyway 12.4 et non 13.8, jOOQ 3.21.7 et non 3.21.9) ; seules les dépendances hors BOM sont prises à leur dernière version. PostgreSQL 18 (la 19 est en bêta). TypeScript 6.0 et non 7.0 (contrainte d'Angular 22).
-- API INSEE : vérifié le 2026-09-26, `GET https://api.insee.fr/api-sirene/3.11/siren/552032534` répond 200 sans en-tête envoyé (clé injectée par le proxy).
+- API INSEE : vérifié le 2026-09-26, `GET https://api.insee.fr/api-sirene/3.11/siren/552032534` répond 200 avec la clé injectée par le proxy. Cette injection s'appliquait à tout `api.insee.fr` et faisait échouer **Melodi** (`/melodi/*`, API ouverte sans abonnement possible) en 401 : injection proxy abandonnée au profit de la variable d'environnement (à revérifier en nouvelle session).
 
 ## Environnement cloud : outillage (constaté le 2026-09-26)
 
@@ -46,6 +46,8 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 | `www.data.gouv.fr`, `recherche-entreprises.api.gouv.fr`, `tabular-api.data.gouv.fr` | ❌ connexion coupée juste après son établissement (probable filtrage des IP de datacenter) : fournir les URL de ressources à la main, ou faire le spike en session locale |
 
 ## Points ouverts
+
+- API INSEE **Melodi** (`https://api.insee.fr/melodi`) : jeux statistiques potentiellement utiles ; à explorer au spike (étape 9), usage à valider (SPEC §4/§6.3, ADR 0004).
 
 - Rate limit réel de l'API Recherche d'entreprises (spike).
 - Quota API Sirene suffisant face aux robots d'indexation (lot 7).
