@@ -32,7 +32,7 @@ Plan validé le 2026-09-27, une PR vers `main` par étape :
 | 4 | `ingestion-core` : pipeline §7.3 en job Spring Batch, points d'extension, idempotence, règle ArchUnit « seul ingestion-core écrit dans core.flux » | à faire |
 | 5 | `ingestion-sirene` : rafraîchissement de `core.entreprise`, chargement de `core.naf` (fichiers INSEE) | à faire |
 
-Décisions du lot : `core.flux` et `core.payeur` créés dès le lot 1 (nécessaires à `ingestion-core`) ; tables Spring Batch dans `ops` (préfixe `batch_`) ; NAF chargée depuis les fichiers INSEE, NAF 2025 prévue dans le modèle ; Resilience4j et Caffeine ajoutés.
+Décisions du lot : **tranche verticale** après le lot 1 (lot 1 bis, SPEC §12 : un extrait DECP réel jusqu'à une fiche entreprise dans le front) et **démo dans chaque PR** (décidé le 2026-09-27, pour rendre le travail visible plus tôt) ; `core.flux` et `core.payeur` créés dès le lot 1 (nécessaires à `ingestion-core`) ; tables Spring Batch dans `ops` (préfixe `batch_`) ; NAF chargée depuis les fichiers INSEE, NAF 2025 prévue dans le modèle ; Resilience4j et Caffeine ajoutés.
 
 ## Décisions prises
 

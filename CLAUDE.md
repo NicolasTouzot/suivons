@@ -121,3 +121,4 @@ Branche par défaut : `main`. Toute évolution passe par une PR vers `main` ; fu
 3. Travailler par lot (`SPEC.md` §12) ; ne pas anticiper un lot suivant sans accord.
 4. En cas d'ambiguïté ou de contradiction avec la spec : poser la question, ne pas trancher seul.
 5. À la fin d'une tâche : tests au vert, documentation mise à jour (spec, méthodologie, ADR si besoin), résumé des changements et des points ouverts.
+6. Toute PR suit `.github/pull_request_template.md` et **montre ce qu'elle produit** (section « Ce que ça donne ») : capture d'écran du front, extrait de données réelles en base, appel d'API et sa réponse, ou schéma. Si rien n'est encore visible, le dire et indiquer quand ça le sera.

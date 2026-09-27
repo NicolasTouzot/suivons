@@ -502,12 +502,13 @@ Tout module est testé aux trois niveaux applicables. **Pas de H2** : les TI tou
 
 ## 12. Découpage en lots
 
-Chaque lot se termine avec : tests TU / TI / TS applicables au vert, documentation à jour, démo possible.
+Chaque lot se termine avec : tests TU / TI / TS applicables au vert, documentation à jour, démo possible. Chaque PR montre ce qu'elle produit (capture d'écran, extrait de données réelles, réponse d'API) dans sa section « Ce que ça donne ».
 
 | Lot | Contenu | Définition de terminé |
 |-----|---------|-----------------------|
 | **0 — Socle** | Monorepo Gradle + Angular, CI, `docker-compose` PostgreSQL, module `db` (Flyway + jOOQ), `contract` (OpenAPI vide), règles ArchUnit, TS Playwright « smoke ». **Spike sources** : endpoints, formats, volumétrie réels des 4 sources, consignés dans `docs/sources/` | `./gradlew build` et pipeline CI verts ; versions figées dans `CLAUDE.md` |
 | **1 — Référentiel** | `ingestion-core` (pipeline §7.3), `referentiel-client`, `ingestion-sirene` (rafraîchissement API), schémas `ops`, `raw`, `core.entreprise`, `core.naf` | Rafraîchissement du référentiel minimal prouvé en TI (WireMock), idempotence prouvée, quotas et mode dégradé testés |
+| **1 bis — Tranche verticale** | Un échantillon réel de bout en bout, avant d'enrichir couche par couche : `ingestion-decp` minimale sur un extrait DECP (un mois, format 2022), rattachement par SIRET uniquement, écriture dans `core.flux` ; endpoint `GET /entreprises/{siren}` (contrat d'abord) ; fiche entreprise minimale dans le front (identité, total tracé, liste des flux avec lien vers la source) | Parcours démontrable sur la stack `docker-compose` : saisir un SIREN → voir l'argent reçu → ouvrir la source ; TS Playwright du parcours ; les lots 2 à 4 enrichissent ensuite cette tranche (volumes réels, règles complètes, mart, design) |
 | **2 — Marchés** | `ingestion-decp`, règles de bornes et de déduplication, montants aberrants, rattachement par SIRET | Golden files DECP verts ; seuils aberrants calibrés |
 | **3 — API** | Mart, endpoints recherche, fiche, payeurs, chronologie, flux, sources | TI API validées contre le contrat ; p95 respectés sur volumétrie réelle |
 | **4 — Front cœur** | Design tokens, thèmes, recherche, fiche entreprise, détail des flux, SSR | Parcours TS recherche → fiche → source ; axe-core sans erreur |
