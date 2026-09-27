@@ -19,7 +19,7 @@ Toutes reportées dans `SPEC.md` v0.3.
 |---|---|---|---|
 | 1 | DECP : data.gouv.fr inaccessible depuis le cloud ; la DAJ publie les DECP consolidées sur `data.economie.gouv.fr` en deux formats | Source DECP = jeux DAJ `decp-v3-marches-valides` (2018-2023) + `decp-2022-marches-valides` (2024 →), export Parquet ; équivalence avec data.gouv.fr à vérifier en local, sans bloquer | SPEC §4 |
 | 2 | DECP : lignes aplaties, montants répétés, sentinelle `CDL`, pas de clé naturelle | Un flux par (marché, titulaire), `source_record_id = acheteur\|id\|titulaire`, dernier montant connu, sous-traitance sans montant, fusion des doublons de plateformes | SPEC §6.4 |
-| 3 | TAM : pas d'API, export plafonné à ~1 000 lignes par recherche | Collecte par fenêtres de dates adaptatives ; conditions de réutilisation à vérifier avant le lot 4 | SPEC §4, §14 |
+| 3 | TAM : pas d'API, export plafonné à ~1 000 lignes par recherche | Collecte par fenêtres de dates adaptatives ; conditions de réutilisation à vérifier avant le lot 5 | SPEC §4, §14 |
 | 4 | TAM : deux montants, tranches pour l'aide fiscale | Référence = élément d'aide ; nominal affiché en complément (F3), jamais agrégé ; tranche → ferme = bas, plafond = haut | SPEC §6.4 |
 | 5 | Kohesio : montant par projet, plusieurs bénéficiaires possibles | Bénéficiaire unique → `FERME` ; plusieurs → `PARTAGE` (ferme nul, plafond = montant du projet) ; montant qualifié de « programmé » ; collecte incrémentale | SPEC §4, §6.4 |
 | 6 | ~5 % des titulaires DECP sont des entrepreneurs individuels | Masquage si `statutDiffusion = P` **ou** catégorie juridique `1000` | SPEC §4, §6.3, §11.2 |

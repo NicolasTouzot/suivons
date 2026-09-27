@@ -20,6 +20,20 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 | 8 | CI GitHub Actions (build, TU, TI, lint front, TS, scan dépendances et licences compatibles AGPL) | ✅ fait |
 | 9 | Spike sources → `docs/sources/` (endpoints, formats, volumétrie, identifiants, écarts à la spec) | ✅ fait (compléments en session locale, voir `docs/sources/README.md`) |
 
+## Lot 1 — Référentiel (en cours)
+
+Plan validé le 2026-09-27, une PR vers `main` par étape :
+
+| Étape | Contenu | État |
+|-------|---------|------|
+| 1 | Schéma : `ops` (sources, runs, rejets, tables Spring Batch), `core` (naf, entreprise, payeur, flux partitionné), rôles `suivons_ingestion` et `suivons_api`, codegen jOOQ, TI du schéma | ✅ fait |
+| 2 | Commande de migration dédiée (ADR 0005) : `./gradlew :db:migrate`, image Flyway en production | ⏭️ prochaine |
+| 3 | `referentiel-client` : clients Sirene et Recherche d'entreprises, quotas, cache (Caffeine), disjoncteur (Resilience4j), mode dégradé | à faire |
+| 4 | `ingestion-core` : pipeline §7.3 en job Spring Batch, points d'extension, idempotence, règle ArchUnit « seul ingestion-core écrit dans core.flux » | à faire |
+| 5 | `ingestion-sirene` : rafraîchissement de `core.entreprise`, chargement de `core.naf` (fichiers INSEE) | à faire |
+
+Décisions du lot : `core.flux` et `core.payeur` créés dès le lot 1 (nécessaires à `ingestion-core`) ; tables Spring Batch dans `ops` (préfixe `batch_`) ; NAF chargée depuis les fichiers INSEE, NAF 2025 prévue dans le modèle ; Resilience4j et Caffeine ajoutés.
+
 ## Décisions prises
 
 - Licence AGPL-3.0-or-later (ADR 0003). Conséquence : lien « Code source » dans le front (lot 6 au plus tard), dépendances compatibles AGPL.
@@ -59,7 +73,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 ## Points ouverts
 
-- Conditions de réutilisation TAM et Kohesio à vérifier avant les lots 4 et 5 (SPEC §14).
+- Conditions de réutilisation TAM et Kohesio à vérifier avant le lot 5 (SPEC §14).
 - Pistes hors spec (de minimis, BOAMP, annuaire de l'administration, Melodi, info-financière) : `docs/sources/pistes.md`.
 - Compléments du spike en session locale (Recherche d'entreprises, data.gouv.fr, conditions de réutilisation TAM et Kohesio) : `docs/sources/README.md`.
 - **Hébergement de production** : la limite par ASN de l'API Recherche d'entreprises (30 req/s, voire blocage des clouds publics) est un critère de choix (`docs/sources/recherche-entreprises.md`).
