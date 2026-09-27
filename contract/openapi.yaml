@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: API Suivre Notre Argent
+  version: 0.1.0
+  description: |
+    API publique en lecture de Suivre Notre Argent (nom de travail) : argent public reçu par les
+    entreprises, chaque montant relié à sa source officielle. Source de vérité du contrat (SPEC.md §8).
+
+    Conventions :
+    - erreurs au format Problem Details (RFC 9457), type de contenu `application/problem+json` ;
+    - pagination par `page` et `size` (100 au plus), réponse avec `total` ;
+    - montants en euros, entiers, jamais formatés ;
+    - toute réponse contenant des montants porte `derniereMiseAJour`.
+  license:
+    name: AGPL-3.0-or-later
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+servers:
+  - url: /api/v1
+tags: []
+paths: {}
+components:
+  schemas:
+    Problem:
+      type: object
+      description: Détail d'une erreur, au format RFC 9457 (Problem Details for HTTP APIs).
+      properties:
+        type:
+          type: string
+          format: uri-reference
+          description: URI identifiant le type d'erreur.
+          default: about:blank
+        title:
+          type: string
+          description: Résumé court et stable du type d'erreur.
+        status:
+          type: integer
+          format: int32
+          minimum: 100
+          maximum: 599
+          description: Code de statut HTTP.
+        detail:
+          type: string
+          description: Explication propre à cette occurrence.
+        instance:
+          type: string
+          format: uri-reference
+          description: URI identifiant cette occurrence.
+      additionalProperties: true
+  responses:
+    BadRequest:
+      description: Requête invalide.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Ressource introuvable.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: Trop de requêtes ; réessayer après le délai indiqué par l'en-tête `Retry-After`.
+      headers:
+        Retry-After:
+          description: Délai d'attente en secondes.
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    ServiceUnavailable:
+      description: Service momentanément indisponible.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'

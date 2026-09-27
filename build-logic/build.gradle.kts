@@ -1,4 +1,4 @@
-// Plugins de convention partagés par les modules (java, bibliothèque, application Spring Boot, codegen jOOQ).
+// Plugins de convention partagés par les modules (java, bibliothèque, application Spring Boot, codegen jOOQ, contrat OpenAPI).
 plugins {
     `kotlin-dsl`
 }
@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation(platform(libs.spring.boot.bom))
     implementation(libs.spring.boot.gradle.plugin)
+    implementation(libs.openapi.generator.gradle.plugin)
     // Codegen jOOQ : PostgreSQL éphémère (Testcontainers) + migrations Flyway, versions du BOM Spring Boot
     implementation(libs.testcontainers.postgresql)
     implementation(libs.flyway.core)

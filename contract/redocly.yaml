@@ -1,0 +1,8 @@
+# Lint du contrat : `npx @redocly/cli@2.54.3 lint --config contract/redocly.yaml contract/openapi.yaml`
+extends:
+  - recommended
+rules:
+  # Composants partagés (réponses d'erreur) déclarés avant les premiers endpoints
+  no-unused-components: warn
+  # API publique en lecture, sans authentification (SPEC.md §8)
+  security-defined: off

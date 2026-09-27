@@ -1,3 +1,3 @@
 plugins {
-    id("suivons.java-library")
+    id("suivons.openapi-contract")
 }

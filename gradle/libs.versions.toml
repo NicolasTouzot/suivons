@@ -19,6 +19,7 @@ postgres-image = "18.6"
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
 # Pour build-logic (plugins de convention)
 spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
+openapi-generator-gradle-plugin = { module = "org.openapitools:openapi-generator-gradle-plugin", version.ref = "openapi-generator" }
 
 # Gérées par le BOM Spring Boot (pas de version)
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
@@ -40,6 +41,14 @@ testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupit
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 assertj = { module = "org.assertj:assertj-core" }
+# Compilation des interfaces générées par le contrat (module contract)
+spring-web = { module = "org.springframework:spring-web" }
+spring-context = { module = "org.springframework:spring-context" }
+jakarta-validation = { module = "jakarta.validation:jakarta.validation-api" }
+jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api" }
+jakarta-servlet = { module = "jakarta.servlet:jakarta.servlet-api" }
+jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
+snakeyaml = { module = "org.yaml:snakeyaml" }
 
 # Hors BOM Spring Boot
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
@@ -47,6 +56,3 @@ archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref
 wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
 swagger-request-validator = { module = "com.atlassian.oai:swagger-request-validator-core", version.ref = "swagger-request-validator" }
 
-[plugins]
-spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
-openapi-generator = { id = "org.openapi.generator", version.ref = "openapi-generator" }
