@@ -123,6 +123,7 @@ jobs:
         working-directory: front
         run: npm audit --omit=dev --audit-level=high
       # Bloque une PR qui introduit une vulnérabilité élevée ou une licence incompatible avec l'AGPL-3.0
+      # (identifiants SPDX uniquement : la « Commons Clause » n'en a pas et ne peut pas être listée)
       - name: Revue des dépendances
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@v4
@@ -134,4 +135,4 @@ jobs:
           deny-licenses: >-
             GPL-1.0-only, GPL-2.0-only, LGPL-2.0-only, SSPL-1.0, BUSL-1.1, Elastic-2.0,
             CC-BY-NC-1.0, CC-BY-NC-2.0, CC-BY-NC-2.5, CC-BY-NC-3.0, CC-BY-NC-4.0,
-            CC-BY-NC-SA-4.0, CC-BY-NC-ND-4.0, Commons-Clause, JSON
+            CC-BY-NC-SA-4.0, CC-BY-NC-ND-4.0, JSON
