@@ -38,13 +38,13 @@
     "@eslint/js": "^10.0.1",
     "@playwright/test": "1.63.0",
     "@types/express": "^5.0.1",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.2",
     "angular-eslint": "22.5.0",
     "eslint": "^10.9.1",
     "jsdom": "^30.0.0",
     "prettier": "^3.8.1",
-    "typescript": "~6.0.2",
-    "typescript-eslint": "8.69.0",
+    "typescript": "~7.0.2",
+    "typescript-eslint": "8.70.1",
     "vitest": "^5.0.0"
   },
   "engines": {
