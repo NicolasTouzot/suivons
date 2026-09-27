@@ -12,6 +12,13 @@ updates:
     directory: /front
     schedule:
       interval: weekly
+    ignore:
+      # TypeScript suit la plage imposée par Angular (22.x : >=6.0 <6.1) : monté avec Angular, jamais seul
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major', 'version-update:semver-minor']
+      # Types Node alignés sur la version majeure de Node du projet (.nvmrc : 24)
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       angular:
         patterns: ['@angular/*', '@angular-devkit/*', 'angular-eslint']
