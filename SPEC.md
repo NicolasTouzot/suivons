@@ -482,7 +482,7 @@ Tout module est testé aux trois niveaux applicables. **Pas de H2** : les TI tou
 ### 11.4 Sécurité
 
 - En-têtes de sécurité (CSP, HSTS, etc.), dépendances scannées en CI.
-- Rôles PostgreSQL distincts : ingestion (écriture), API (lecture seule + `ops.signalement`).
+- Rôles PostgreSQL distincts : migration (propriétaire des schémas, seul rôle avec droits DDL, utilisé par la commande de migration dédiée, ADR 0005), ingestion (écriture), API (lecture seule + `ops.signalement`).
 - Clés d'API externes (`INSEE_API_KEY`) uniquement en secrets d'environnement, jamais dans le dépôt ni dans les logs.
 
 ## 12. Découpage en lots

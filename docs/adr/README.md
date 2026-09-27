@@ -10,3 +10,4 @@ Gabarit : [`0000-template.md`](0000-template.md).
 | 0002 | [Monorepo Gradle + Angular](0002-monorepo.md) | Accepté |
 | 0003 | [Licence AGPL-3.0-or-later](0003-licence-agpl.md) | Accepté |
 | 0004 | [Référentiel entreprises : API d'abord](0004-referentiel-api-dabord.md) | Accepté |
+| 0005 | [Migrations du schéma par une commande dédiée](0005-migrations-commande-dediee.md) | Accepté |
