@@ -68,7 +68,8 @@ abstract class GenerateJooqTask : DefaultTask() {
                                     .withName("org.jooq.meta.postgres.PostgresDatabase")
                                     .withSchemata(schemas.get().map { SchemaMappingType().withInputSchema(it) })
                                     .withIncludes(".*")
-                                    .withExcludes("flyway_schema_history"),
+                                    // Exclus : historique Flyway, métadonnées Spring Batch, partitions de core.flux (accès par la table mère)
+                                    .withExcludes("flyway_schema_history|batch_.*|flux_[0-9]{4}|flux_hors_plage"),
                             )
                             .withGenerate(Generate().withJavaTimeTypes(true))
                             .withTarget(

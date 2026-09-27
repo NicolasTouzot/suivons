@@ -69,7 +69,7 @@ Principe (ADR 0004) : **une donnée disponible par API n'est pas recopiée en ba
 ### Pièges connus à traiter
 
 - **DECP** : deux formats à fusionner (2019 et 2022) ; lignes **aplaties** (une ligne par marché × titulaire × modification × acte de sous-traitance), le montant du marché étant répété sur chaque ligne ; valeur sentinelle `CDL` pour « vide » ; pas de clé naturelle unique ; un même marché publié par plusieurs plateformes ; montants aberrants (≤ 1 €, ≥ 1 Md€) ; accords-cadres exprimés en plafond (37 % des lignes) ; SIRET mal saisi, et zéros de tête perdus dans le format 2019 (SIRET typé nombre). Règles de traitement : §6.4.
-- **TAM** : seuil de publication (≥ 100 k€ dans le cas général) : les aides en dessous sont invisibles ; montants en tranches pour certaines aides fiscales ; deux montants (élément d'aide, nominal) ; identifiant national avec espaces ou espaces insécables ; export limité à ~1 000 résultats par recherche : collecte par **fenêtres de dates adaptatives** ; formulaire web (jeton CSRF, session) : fragile, surveillé. Conditions de réutilisation à vérifier avant le lot 4.
+- **TAM** : seuil de publication (≥ 100 k€ dans le cas général) : les aides en dessous sont invisibles ; montants en tranches pour certaines aides fiscales ; deux montants (élément d'aide, nominal) ; identifiant national avec espaces ou espaces insécables ; export limité à ~1 000 résultats par recherche : collecte par **fenêtres de dates adaptatives** ; formulaire web (jeton CSRF, session) : fragile, surveillé. Conditions de réutilisation à vérifier avant le lot 5.
 - **Kohesio** : aucun identifiant national, rattachement par nom uniquement : forte dépendance au moteur de réconciliation ; montant porté par le projet et non par bénéficiaire ; montant **programmé**, pas versé ; bénéficiaires disponibles seulement dans le détail de chaque projet (~1 s par appel, 63 000 projets français) : collecte incrémentale ; API non documentée, surveillée. Conditions de réutilisation à vérifier avant le lot 5.
 - **SIRENE** : les unités en **diffusion partielle** (`statutDiffusion = P`) et les **entrepreneurs individuels** (catégorie juridique `1000`, ~5 % des titulaires DECP, même en diffusion `O`) ne doivent jamais être exposés nominativement ; le statut est à relire à chaque rafraîchissement (oppositions possibles à tout moment). Quotas API bas : toute lecture en direct passe par un cache et un disjoncteur.
 
@@ -160,6 +160,7 @@ Le référentiel entreprises n'est **pas** une copie de SIRENE : seules les entr
 | `ops.source` | `code` (PK : `SIRENE`, `RECHERCHE_ENTREPRISES`, `DECP`, `TAM`, `KOHESIO`), `libelle`, `producteur`, `licence`, `url_reference`, `frequence` |
 | `ops.ingestion_run` | `id`, `source_code`, `version_source` (date ou hash du jeu), `debut`, `fin`, `statut` (`EN_COURS`, `SUCCES`, `ECHEC`), `lus`, `charges`, `rejetes`, `checksum_fichier` |
 | `ops.rejet` | `run_id`, `source_record_id`, `motif`, `payload` (jsonb) |
+| `ops.batch_*` | Tables techniques de Spring Batch (reprise des jobs), DDL officiel préfixé `ops.` (décision du 2026-09-27) |
 | `ops.signalement` | `id`, `siren`, `flux_id` (nullable), `type`, `commentaire`, `email` (nullable), `cree_le`, `statut` |
 
 ### 6.2 Schéma `raw`
@@ -169,7 +170,7 @@ Objectif : pouvoir **rejouer la transformation** sans retélécharger, et prouve
 
 ### 6.3 Schéma `core`
 
-**`core.entreprise`** — référentiel **minimal**, limité aux bénéficiaires d'au moins un flux : `siren` (PK), `denomination`, `naf_code`, `commune_siege`, `departement_siege`, `etat` (`ACTIVE`, `CESSEE`), `diffusible` (bool, faux si `statutDiffusionUniteLegale = P`), `personne_physique` (bool, vrai si catégorie juridique `1000`), `rafraichi_le`.
+**`core.entreprise`** — référentiel **minimal**, limité aux bénéficiaires d'au moins un flux : `siren` (PK), `denomination`, `naf_code`, `naf_nomenclature`, `commune_siege`, `departement_siege`, `etat` (`ACTIVE`, `CESSEE`), `diffusible` (bool, faux si `statutDiffusionUniteLegale = P`), `personne_physique` (bool, vrai si catégorie juridique `1000`), `rafraichi_le`.
 
 | Champ | Raison du stockage local |
 |-------|--------------------------|
@@ -180,7 +181,7 @@ Objectif : pouvoir **rejouer la transformation** sans retélécharger, et prouve
 
 Tout autre champ d'identité est lu en direct via l'API Sirene. Une entreprise dont tous les flux disparaissent est retirée du référentiel au rafraîchissement suivant.
 
-**`core.naf`** : `code` (PK), `libelle`. Nomenclature publique statique (~730 codes), chargée depuis l'INSEE ; conservée localement car nécessaire à chaque résultat de recherche.
+**`core.naf`** : `nomenclature` (`NAFRev2`, `NAF2025`), `code`, `libelle` ; PK `(nomenclature, code)`. Nomenclature publique statique (~730 sous-classes par édition), chargée depuis le fichier publié par l'INSEE (contrôle du checksum) ; conservée localement car nécessaire à chaque résultat de recherche. La NAF 2025 remplace la NAF rév. 2 au 1er janvier 2027 : `core.entreprise` porte `naf_code` et `naf_nomenclature`.
 
 **`core.payeur`** : `id`, `identifiant` (SIRET/SIREN ou identifiant UE), `nom`, `type` (`ETAT`, `OPERATEUR`, `COLLECTIVITE`, `HOPITAL`, `UE`, `AUTRE`).
 
@@ -205,7 +206,7 @@ Tout autre champ d'identité est lu en direct via l'API Sirene. Une entreprise d
 | `source_url` | **NOT NULL** : lien vers l'enregistrement ou le jeu de données |
 | `run_id`, `extrait_le` | **NOT NULL** |
 
-Contrainte d'unicité `(source_code, source_record_id)` : garantit l'**idempotence** des ingestions (upsert).
+Contrainte d'unicité `(source_code, source_record_id)` : garantit l'**idempotence** des ingestions (upsert). PostgreSQL imposant la clé de partition dans toute contrainte d'unicité, la base porte `UNIQUE (source_code, source_record_id, annee)` ; l'unicité sans l'année est garantie par `ingestion-core` (un flux qui change d'année remplace sa ligne), et testée. Partitions annuelles 2010 → 2030 et une partition par défaut pour les dates hors plage.
 
 ### 6.4 Règles de calcul
 
@@ -496,7 +497,7 @@ Tout module est testé aux trois niveaux applicables. **Pas de H2** : les TI tou
 ### 11.4 Sécurité
 
 - En-têtes de sécurité (CSP, HSTS, etc.), dépendances scannées en CI.
-- Rôles PostgreSQL distincts : migration (propriétaire des schémas, seul rôle avec droits DDL, utilisé par la commande de migration dédiée, ADR 0005), ingestion (écriture), API (lecture seule + `ops.signalement`).
+- Rôles PostgreSQL distincts : migration (propriétaire des schémas, seul rôle avec droits DDL, utilisé par la commande de migration dédiée, ADR 0005), ingestion (`suivons_ingestion` : lecture et écriture des données, `ops.source` en lecture), API (`suivons_api` : lecture de `core`, `mart`, `ops.source`, `ops.ingestion_run` ; écriture de `ops.signalement` au lot 6 ; aucun accès à `raw` ni aux rejets). Les rôles applicatifs sont des rôles de groupe sans connexion ; chaque environnement crée ses utilisateurs de connexion, membres de ces rôles.
 - Clés d'API externes (`INSEE_API_KEY`) uniquement en secrets d'environnement, jamais dans le dépôt ni dans les logs.
 
 ## 12. Découpage en lots
@@ -536,4 +537,4 @@ Chaque lot se termine avec : tests TU / TI / TS applicables au vert, documentati
 | Durée de conservation des signalements | 6 à 12 mois | Lot 6 |
 | Quota API Sirene | Accès public (30 req/min, 2 000 req/h) suffisant ? Sinon demande d'un quota supérieur à l'INSEE | Lot 7 (selon trafic et exploration des robots) |
 | ~~Accès à `recherche-entreprises.api.gouv.fr` et `www.data.gouv.fr` depuis l'environnement cloud~~ | **Tranché** : DECP lu sur `data.economie.gouv.fr` (DAJ) ; Recherche d'entreprises conservée, bloquée seulement par la détection des robots sur l'environnement cloud de développement (tests en session locale, WireMock en CI) | Lot 0 ✔ |
-| Conditions de réutilisation TAM et Kohesio | À vérifier (réutilisation des données de la Commission) ; à défaut, demande à COMP-TAM-SUPPORT et à la DG REGIO | Avant les lots 4 et 5 |
+| Conditions de réutilisation TAM et Kohesio | À vérifier (réutilisation des données de la Commission) ; à défaut, demande à COMP-TAM-SUPPORT et à la DG REGIO | Avant le lot 5 |
