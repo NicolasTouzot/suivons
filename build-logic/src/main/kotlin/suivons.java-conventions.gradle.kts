@@ -56,3 +56,11 @@ testing {
         }
     }
 }
+
+// Comme les TU, les TI voient les dépendances du code principal (y compris implementation)
+configurations.named("integrationTestImplementation") {
+    extendsFrom(configurations.getByName("implementation"))
+}
+configurations.named("integrationTestRuntimeOnly") {
+    extendsFrom(configurations.getByName("runtimeOnly"))
+}

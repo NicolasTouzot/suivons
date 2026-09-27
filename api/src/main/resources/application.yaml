@@ -1,0 +1,36 @@
+# Configuration de l'API (SPEC.md §8, §11). Base de données : variables d'environnement
+# SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD (profil `dev` en local).
+spring:
+  application:
+    name: suivons-api
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    # Erreurs au format RFC 9457 (application/problem+json)
+    problemdetails:
+      enabled: true
+  web:
+    resources:
+      # API JSON uniquement : pas de ressources statiques (le front est servi à part)
+      add-mappings: false
+  jooq:
+    sql-dialect: postgres
+
+logging:
+  structured:
+    format:
+      # Logs JSON structurés (Elastic Common Schema)
+      console: ecs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-components: always
+      show-details: never

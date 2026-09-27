@@ -48,6 +48,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 - Un module applique **un** plugin de convention : `suivons.java-library` (bibliothèque), `suivons.spring-boot-app` (exécutable), `suivons.jooq-codegen` (`db` uniquement) ou `suivons.openapi-contract` (`contract` uniquement). Aucune version ni configuration de compilation dans les `build.gradle.kts` des modules.
 - Code jOOQ : généré par `:db:generateJooq` (PostgreSQL éphémère via Testcontainers + migrations Flyway), **versionné** dans `db/src/main/jooq`, régénéré et commité avec chaque migration. Migrations dans `db/src/main/resources/db/migration`.
 - Contrat : `contract/openapi.yaml` (OpenAPI 3.0.3). `./gradlew build` le valide, génère les interfaces Spring (`fr.suivons.contract.api`, DTO dans `fr.suivons.contract.model`, compilés dans `contract`) et le client Angular (`contract/build/generated/typescript-angular`). Le schéma `Problem` (RFC 9457) est porté par `org.springframework.http.ProblemDetail` côté Spring, jamais par un DTO. Les conventions transverses du contrat sont vérifiées par `ContractConventionsTest`.
+- API : contrôleurs de `fr.suivons.api` préfixés par `/api/v1` (`ApiPathConfig`, égal au serveur du contrat) ; Actuator sur `/actuator` (`health` avec sondes, `info`) ; logs JSON ECS ; erreurs RFC 9457. L'API ne migre jamais le schéma : Flyway n'est sur son classpath qu'en TI.
 - Image PostgreSQL des TI et du codegen : `postgres-image` du catalogue (propriété système `suivons.postgres.image` dans les TI) ; `docker-compose.yml` doit rester aligné.
 - Suites de tests : `test` (TU, dans `./gradlew build`) et `integrationTest` (TI, `src/integrationTest/java`, hors `build`).
 
@@ -59,6 +60,7 @@ docker compose up -d db                 # PostgreSQL local
 ./gradlew integrationTest               # TI (Testcontainers)
 ./gradlew :db:generateJooq              # régénérer le code jOOQ après une migration (Docker requis)
 npx @redocly/cli@2.54.3 lint --config contract/redocly.yaml contract/openapi.yaml   # lint du contrat
+SPRING_PROFILES_ACTIVE=dev ./gradlew :api:bootRun   # API locale sur la base du docker-compose
 ./gradlew :ingestion-decp:bootRun --args='--run'   # lancer une ingestion en local
 cd front && npm test                    # TU front (Vitest)
 cd front && npm run e2e                 # TS Playwright (stack docker-compose requise)

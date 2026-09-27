@@ -71,6 +71,13 @@ tasks.named("compileJava") {
     dependsOn(generateSpring)
 }
 
+// Le contrat voyage dans le jar (classpath:openapi/openapi.yaml) : validation des réponses en TI
+tasks.named<ProcessResources>("processResources") {
+    from(spec) {
+        into("openapi")
+    }
+}
+
 tasks.named("check") {
     dependsOn(validateContract)
 }

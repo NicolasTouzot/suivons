@@ -10,6 +10,13 @@ dependencies {
     implementation(libs.findLibrary("spring-boot-starter").get())
 }
 
+// Version et nom exposés par /actuator/info (sans horodatage, pour un build reproductible)
+springBoot {
+    buildInfo {
+        excludes = setOf("time")
+    }
+}
+
 testing {
     suites {
         withType<JvmTestSuite>().configureEach {

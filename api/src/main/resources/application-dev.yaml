@@ -1,0 +1,6 @@
+# Développement local : base du docker-compose.yml (identifiants de dev uniquement).
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/suivons
+    username: suivons
+    password: suivons
