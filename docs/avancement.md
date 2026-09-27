@@ -2,7 +2,7 @@
 
 > Note de passation entre sessions. À lire après `CLAUDE.md` et `SPEC.md`, et à tenir à jour en fin de session.
 
-## Lot 0 — Socle (en cours)
+## Lot 0 — Socle (terminé sous réserve du premier run CI et des écarts de sources à trancher)
 
 Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur après chacune :
 
@@ -18,7 +18,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 | 6 | Règles ArchUnit (§7.2, dont `referentiel-client` sans `db`) | ✅ fait |
 | 7 | `front` Angular standalone + SSR, Vitest, ESLint ; Playwright smoke + axe-core | ✅ fait |
 | 8 | CI GitHub Actions (build, TU, TI, lint front, TS, scan dépendances et licences compatibles AGPL) | ✅ fait (à confirmer au premier run) |
-| 9 | Spike sources → `docs/sources/` (endpoints, formats, volumétrie, identifiants, écarts à la spec) | ⏭️ prochaine |
+| 9 | Spike sources → `docs/sources/` (endpoints, formats, volumétrie, identifiants, écarts à la spec) | ✅ fait (compléments en session locale, voir `docs/sources/README.md`) |
 
 ## Décisions prises
 
@@ -57,15 +57,9 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 ## Points ouverts
 
-- **data.economie.gouv.fr** (API Explore v2.1 Opendatasoft, sans clé, joignable depuis le cloud), constats du 2026-09-26, à trancher avant le spike :
-  - DECP consolidées par la DAJ : `decp-2022-marches-valides` (format 2022, 708 k lignes, maj 2026-09-22) et `decp-v3-marches-valides` (format 2019, 703 k), Licence Ouverte 2.0. Alternative à data.gouv.fr, qui est bloqué depuis le cloud. Écart à la spec §4 (source indiquée : data.gouv.fr).
-  - `aides_minimis` : registre public des aides de minimis (DGE, Plateforme aides d'État), par bénéficiaire avec SIREN, montant en ESB, autorité d'octroi, depuis le 2026-01-01 (17,6 k lignes). Couvre les aides d'État sous le seuil TAM. Nouvelle source candidate (canal `AIDE_ETAT`) ; licence non renseignée, à vérifier.
-  - Peu exploitables : `plan-de-relance` (SIREN, mais sans montant par projet), `tpe-pme-beneficiaires-des-dispositifs-france-num` (bénéficiaires pseudonymisés).
-- Autres portails Opendatasoft (API Explore v2.1, sans clé, joignables depuis le cloud), constats du 2026-09-26 :
-  - **BOAMP** (DILA, `boamp-datadila.opendatasoft.com`, jeu `boamp`, 1,7 M avis, maj quotidienne) : 466 k avis « Résultat de marché » depuis 2015. Le champ `titulaire` ne contient que des noms, mais le JSON eForms `donnees` porte les SIRET (`cbc:CompanyID`) et les montants attribués (`cbc:PayableAmount`, `cbc:TotalAmount`) ; `url_avis` donne un lien source par avis. Piste : contrôle croisé et complétude de DECP (canal `MARCHE`), avec un risque de doublons entre les deux sources. Licence non renseignée sur le portail.
-  - **Annuaire de l'administration** (DILA, `api-lannuaire.service-public.gouv.fr`, jeu `api-lannuaire-administration`, 94 k entités, dont 44 k avec SIREN, maj quotidienne) : type d'organisme (ministère, établissement public, collectivité…) et hiérarchie. Piste : qualifier et regrouper les **payeurs** (acheteurs, autorités d'octroi).
-  - **info-financiere.gouv.fr** (AMF, jeu `flux-amf-new-prod`, 537 k documents réglementés des sociétés cotées, identifiées par LEI et ISIN, sans SIREN) : aucun flux d'argent public. Piste V2 au plus : lien vers les rapports annuels depuis la fiche d'une société cotée.
-- API INSEE **Melodi** (`https://api.insee.fr/melodi`) : jeux statistiques potentiellement utiles ; à explorer au spike (étape 9), usage à valider (SPEC §4/§6.3, ADR 0004).
-
-- API Recherche d'entreprises : limite documentée (openapi du 2026-09-26) de **7 req/s par IP et 30 req/s par ASN**, avec 429 et `Retry-After` ; l'en-tête `User-Agent` descriptif est recommandé. Depuis l'environnement cloud, retesté le 2026-09-26 : la connexion TLS s'établit via le proxy, puis l'amont coupe (39 octets reçus, `ws_closed_mid_exchange`), alors que `annuaire-entreprises.data.gouv.fr` répond 200. Il s'agit donc d'un filtrage côté fournisseur (IP ou ASN du datacenter), et non du proxy. Conséquences : spike à faire en session locale ; **hébergement de production** à choisir en tenant compte de la limite par ASN (le repli de recherche F1 de l'`api` en dépend).
+- **Écarts à la spec issus du spike des sources** : 8 décisions à prendre, listées dans `docs/sources/README.md` (source DECP, dédoublonnage DECP, collecte et montants TAM, Kohesio, masquage des entrepreneurs individuels, Recherche d'entreprises, registre de minimis).
+- Pistes hors spec (de minimis, BOAMP, annuaire de l'administration, Melodi, info-financière) : `docs/sources/pistes.md`.
+- CI : premier run à l'ouverture d'une PR (jamais exécutée sur GitHub).
+- Compléments du spike en session locale (Recherche d'entreprises, data.gouv.fr, conditions de réutilisation TAM et Kohesio) : `docs/sources/README.md`.
+- **Hébergement de production** : la limite par ASN de l'API Recherche d'entreprises (30 req/s, voire blocage des clouds publics) est un critère de choix (`docs/sources/recherche-entreprises.md`).
 - Quota API Sirene suffisant face aux robots d'indexation (lot 7).
