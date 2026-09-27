@@ -6,6 +6,7 @@ Site citoyen qui trace l'argent public reçu par les entreprises (commande publi
 - Conventions de développement : [`CLAUDE.md`](CLAUDE.md)
 - Décisions d'architecture : [`docs/adr/`](docs/adr/)
 - Notes sur les sources de données : [`docs/sources/`](docs/sources/README.md)
+- Exploitation (déploiement, migrations, rôles) : [`docs/exploitation.md`](docs/exploitation.md)
 
 ## Licence
 

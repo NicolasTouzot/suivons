@@ -33,6 +33,12 @@ jobs:
         run: ./gradlew build
       - name: TI (Testcontainers PostgreSQL)
         run: ./gradlew integrationTest
+      - name: Commande de migration dédiée (ADR 0005), appliquée puis rejouée
+        run: |
+          docker compose up -d --wait db
+          ./gradlew :db:migrate
+          ./gradlew :db:migrate
+          docker compose down -v
       - name: Code jOOQ généré à jour
         run: |
           ./gradlew :db:generateJooq

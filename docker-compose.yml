@@ -17,5 +17,24 @@ services:
       timeout: 5s
       retries: 10
 
+  # Commande de migration dédiée (ADR 0005), avec l'image Flyway officielle : c'est la forme utilisée en
+  # production. `docker compose run --rm migrate` (profil outils, jamais démarré par `up`).
+  # Version de l'image : à garder égale à `flyway-image` dans gradle/libs.versions.toml.
+  migrate:
+    image: flyway/flyway:12.4.0-alpine
+    profiles: [outils]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./db/src/main/resources/db/migration:/flyway/migrations:ro
+    command:
+      - -url=jdbc:postgresql://db:5432/${POSTGRES_DB:-suivons}
+      - -user=${POSTGRES_USER:-suivons}
+      - -password=${POSTGRES_PASSWORD:-suivons}
+      - -locations=filesystem:/flyway/migrations
+      - -cleanDisabled=true
+      - migrate
+
 volumes:
   pgdata:

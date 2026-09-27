@@ -1,5 +1,5 @@
 plugins {
-    id("suivons.jooq-codegen")
+    id("suivons.database")
 }
 
 dependencies {
