@@ -46,6 +46,11 @@ testing {
             targets.configureEach {
                 testTask.configure {
                     shouldRunAfter(tasks.named("test"))
+                    // Image PostgreSQL unique pour tous les TI (Testcontainers), issue du catalogue
+                    systemProperty(
+                        "suivons.postgres.image",
+                        "postgres:" + libs.findVersion("postgres-image").get().requiredVersion,
+                    )
                 }
             }
         }

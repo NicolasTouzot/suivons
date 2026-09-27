@@ -9,7 +9,7 @@ Site citoyen qui trace l'argent public reçu par les entreprises, chaque montant
 ## Structure du repo
 
 ```
-/build-logic          Plugins de convention Gradle (suivons.java-library, suivons.spring-boot-app)
+/build-logic          Plugins de convention Gradle (suivons.java-library, suivons.spring-boot-app, suivons.jooq-codegen)
 /db                   Migrations Flyway + génération jOOQ
 /domain               Types et règles métier purs (sans Spring, sans SQL)
 /ingestion-core       Pipeline commun d'ingestion (Spring Batch)
@@ -35,7 +35,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 - Gradle : 9.8.0 (wrapper)
 - Spring Boot : 4.1.1 — BOM : Spring Framework 7.0.9, Spring Batch 6.0.5
 - PostgreSQL : 18 (image `postgres:18.6`), pilote JDBC 42.7.13 (BOM)
-- jOOQ : 3.21.7 (BOM ; le plugin de codegen doit rester aligné) — Flyway : 12.4.0 (BOM)
+- jOOQ : 3.21.7 (BOM, runtime et codegen) — Flyway : 12.4.0 (BOM)
 - Tests : JUnit Jupiter 6.0.3, AssertJ 3.27.7, Testcontainers 2.0.5 (BOM) ; ArchUnit 1.5.1, WireMock 3.13.2 (standalone), swagger-request-validator 3.0.0
 - OpenAPI Generator (plugin Gradle) : 7.25.0
 - Node : 24 LTS (24.21.0) — Angular : 22.2 — TypeScript : 6.0 (imposé par Angular 22)
@@ -45,7 +45,9 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 ## Organisation du build
 
 - Paquet racine Java : `fr.suivons.<module>` (ex. `fr.suivons.ingestion.decp`), groupe Gradle `fr.suivons`.
-- Un module applique **un** plugin de convention : `suivons.java-library` (bibliothèque) ou `suivons.spring-boot-app` (exécutable). Aucune version ni configuration de compilation dans les `build.gradle.kts` des modules.
+- Un module applique **un** plugin de convention : `suivons.java-library` (bibliothèque), `suivons.spring-boot-app` (exécutable) ou `suivons.jooq-codegen` (`db` uniquement). Aucune version ni configuration de compilation dans les `build.gradle.kts` des modules.
+- Code jOOQ : généré par `:db:generateJooq` (PostgreSQL éphémère via Testcontainers + migrations Flyway), **versionné** dans `db/src/main/jooq`, régénéré et commité avec chaque migration. Migrations dans `db/src/main/resources/db/migration`.
+- Image PostgreSQL des TI et du codegen : `postgres-image` du catalogue (propriété système `suivons.postgres.image` dans les TI) ; `docker-compose.yml` doit rester aligné.
 - Suites de tests : `test` (TU, dans `./gradlew build`) et `integrationTest` (TI, `src/integrationTest/java`, hors `build`).
 
 ## Commandes

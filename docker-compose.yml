@@ -1,0 +1,21 @@
+# Environnement local de développement (SPEC.md §7.4). Identifiants de dev uniquement.
+# Version de l'image : à garder égale à `postgres-image` dans gradle/libs.versions.toml.
+services:
+  db:
+    image: postgres:18.6
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-suivons}
+      POSTGRES_USER: ${POSTGRES_USER:-suivons}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-suivons}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
