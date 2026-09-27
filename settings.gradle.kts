@@ -29,4 +29,6 @@ include(
     "ingestion-kohesio",
     "contract",
     "api",
+    // Tests d'architecture transverses (ArchUnit), sans code de production
+    "architecture",
 )

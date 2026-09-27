@@ -21,6 +21,7 @@ Site citoyen qui trace l'argent public reçu par les entreprises, chaque montant
 /ingestion-kohesio    Source Kohesio (canal FONDS_UE)
 /contract             openapi.yaml — contrat de l'API
 /api                  API REST Spring Boot
+/architecture         Tests ArchUnit transverses (règles du SPEC.md §7.2), sans code de production
 /front                Application Angular
 /docs                 Méthodologie, ADR (docs/adr), notes sur les sources (docs/sources)
 /fixtures             Échantillons de données sources pour les tests
@@ -68,7 +69,7 @@ cd front && npm run e2e                 # TS Playwright (stack docker-compose re
 
 ## Règles d'architecture (non négociables)
 
-- **Modularité** : un module `ingestion-<source>` ne dépend jamais d'un autre. `api` ne dépend ni des modules `ingestion-*`, ni de `reconciliation`. `domain` ne dépend ni de Spring, ni de jOOQ. Ces règles sont vérifiées par ArchUnit : ne pas les désactiver.
+- **Modularité** : un module `ingestion-<source>` ne dépend jamais d'un autre. `api` ne dépend ni des modules `ingestion-*`, ni de `reconciliation`. `domain` ne dépend ni de Spring, ni de jOOQ. Ces règles sont vérifiées par ArchUnit (module `architecture`, dans `./gradlew build`) : ne pas les désactiver. Toute nouvelle règle vient avec son autotest (classe en infraction volontaire dans un paquet `*.violation`).
 - **API-first** : toute évolution d'API commence par `contract/openapi.yaml`, puis régénération des interfaces Spring et du client Angular. Ne jamais écrire à la main un DTO qui existe dans le contrat.
 - **Accès données** : jOOQ uniquement. Pas de JPA ni d'Hibernate.
 - **Schéma** : uniquement via une nouvelle migration Flyway. Ne jamais modifier une migration déjà fusionnée.
