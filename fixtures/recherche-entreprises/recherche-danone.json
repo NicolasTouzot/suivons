@@ -1,0 +1,38 @@
+{
+  "results": [
+    {
+      "siren": "552032534",
+      "nom_complet": "DANONE",
+      "etat_administratif": "A",
+      "nature_juridique": "5599",
+      "siege": {
+        "commune": "75109",
+        "libelle_commune": "PARIS 9",
+        "code_postal": "75009"
+      },
+      "score": 0.97
+    },
+    {
+      "siren": "412565228",
+      "nom_complet": "SALOME INFORMATIQUE",
+      "etat_administratif": "C",
+      "nature_juridique": "5499",
+      "siege": {
+        "commune": "75112",
+        "libelle_commune": "PARIS 12",
+        "code_postal": "75012"
+      },
+      "score": 0.41
+    },
+    {
+      "siren": "123",
+      "nom_complet": "IDENTIFIANT INVALIDE",
+      "etat_administratif": "A",
+      "siege": null
+    }
+  ],
+  "total_results": 3,
+  "page": 1,
+  "per_page": 10,
+  "total_pages": 1
+}
