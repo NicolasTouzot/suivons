@@ -1,0 +1,29 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.entete,
+.contenu,
+.pied {
+  width: 100%;
+  max-width: var(--largeur-contenu);
+  margin-inline: auto;
+  padding: var(--espace-3);
+}
+
+.marque {
+  margin: 0;
+  font-family: var(--font-titre);
+  font-weight: 700;
+}
+
+.contenu {
+  flex: 1;
+}
+
+.pied {
+  color: var(--couleur-texte-secondaire);
+  border-top: 1px solid var(--couleur-surface);
+}

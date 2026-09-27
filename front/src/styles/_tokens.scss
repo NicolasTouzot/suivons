@@ -1,0 +1,43 @@
+// Design tokens (SPEC.md §9.2) : seule source des couleurs, espacements, rayons et typographies.
+// Valeurs provisoires du socle (lot 0) ; l'identité visuelle est définie avec les écrans.
+:root {
+  color-scheme: light dark;
+
+  --font-titre: Georgia, 'Times New Roman', serif;
+  --font-interface: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-chiffres: tabular-nums;
+
+  --espace-1: 0.25rem;
+  --espace-2: 0.5rem;
+  --espace-3: 1rem;
+  --espace-4: 1.5rem;
+  --espace-5: 2.5rem;
+  --rayon-1: 0.25rem;
+  --largeur-contenu: 72rem;
+
+  --couleur-fond: #ffffff;
+  --couleur-surface: #f4f4f2;
+  --couleur-texte: #1a1a1a;
+  --couleur-texte-secondaire: #4a4a4a;
+  --couleur-accent: #0b5cad;
+  --couleur-focus: #0b5cad;
+
+  --duree-transition: 200ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --couleur-fond: #121212;
+    --couleur-surface: #1e1e1e;
+    --couleur-texte: #f0f0f0;
+    --couleur-texte-secondaire: #c2c2c2;
+    --couleur-accent: #7fb4ea;
+    --couleur-focus: #7fb4ea;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duree-transition: 0ms;
+  }
+}

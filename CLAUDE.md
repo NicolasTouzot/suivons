@@ -50,6 +50,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 - Code jOOQ : généré par `:db:generateJooq` (PostgreSQL éphémère via Testcontainers + migrations Flyway), **versionné** dans `db/src/main/jooq`, régénéré et commité avec chaque migration. Migrations dans `db/src/main/resources/db/migration`.
 - Contrat : `contract/openapi.yaml` (OpenAPI 3.0.3). `./gradlew build` le valide, génère les interfaces Spring (`fr.suivons.contract.api`, DTO dans `fr.suivons.contract.model`, compilés dans `contract`) et le client Angular (`contract/build/generated/typescript-angular`). Le schéma `Problem` (RFC 9457) est porté par `org.springframework.http.ProblemDetail` côté Spring, jamais par un DTO. Les conventions transverses du contrat sont vérifiées par `ContractConventionsTest`.
 - API : contrôleurs de `fr.suivons.api` préfixés par `/api/v1` (`ApiPathConfig`, égal au serveur du contrat) ; Actuator sur `/actuator` (`health` avec sondes, `info`) ; logs JSON ECS ; erreurs RFC 9457. L'API ne migre jamais le schéma : Flyway n'est sur son classpath qu'en TI.
+- Front : client d'API généré par `npm run generate:api` (Gradle) dans `front/src/app/core/api/generated`, non versionné, branché par `provideApi('/api/v1')` ; rendu serveur à la demande (`RenderMode.Server`) ; design tokens dans `front/src/styles/_tokens.scss` (thèmes clair et sombre, `prefers-reduced-motion`).
 - Image PostgreSQL des TI et du codegen : `postgres-image` du catalogue (propriété système `suivons.postgres.image` dans les TI) ; `docker-compose.yml` doit rester aligné.
 - Suites de tests : `test` (TU, dans `./gradlew build`) et `integrationTest` (TI, `src/integrationTest/java`, hors `build`).
 
@@ -63,8 +64,10 @@ docker compose up -d db                 # PostgreSQL local
 npx @redocly/cli@2.54.3 lint --config contract/redocly.yaml contract/openapi.yaml   # lint du contrat
 SPRING_PROFILES_ACTIVE=dev ./gradlew :api:bootRun   # API locale sur la base du docker-compose
 ./gradlew :ingestion-decp:bootRun --args='--run'   # lancer une ingestion en local
-cd front && npm test                    # TU front (Vitest)
-cd front && npm run e2e                 # TS Playwright (stack docker-compose requise)
+cd front && npm ci                      # dépendances front (Node 24, voir front/.nvmrc)
+cd front && npm test                    # TU front (Vitest) ; régénère d'abord le client d'API
+cd front && npm run lint                # ESLint (angular-eslint)
+cd front && npm run e2e                 # TS Playwright + axe-core (serveur SSR ; stack docker-compose à partir du lot 2)
 ```
 
 ## Règles d'architecture (non négociables)
