@@ -9,7 +9,7 @@ Site citoyen qui trace l'argent public reçu par les entreprises, chaque montant
 ## Structure du repo
 
 ```
-/build-logic          Plugins de convention Gradle (java-library, spring-boot-app, jooq-codegen, openapi-contract)
+/build-logic          Plugins de convention Gradle (java-library, spring-boot-app, database, openapi-contract)
 /db                   Migrations Flyway + génération jOOQ
 /domain               Types et règles métier purs (sans Spring, sans SQL)
 /ingestion-core       Pipeline commun d'ingestion (Spring Batch)
@@ -36,7 +36,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 - Gradle : 9.8.0 (wrapper)
 - Spring Boot : 4.1.1 — BOM : Spring Framework 7.0.9, Spring Batch 6.0.5
 - PostgreSQL : 18 (image `postgres:18.6`), pilote JDBC 42.7.13 (BOM)
-- jOOQ : 3.21.7 (BOM, runtime et codegen) — Flyway : 12.4.0 (BOM)
+- jOOQ : 3.21.7 (BOM, runtime et codegen) — Flyway : 12.4.0 (BOM ; image `flyway/flyway:12.4.0-alpine` pour la commande de migration)
 - Tests : JUnit Jupiter 6.0.3, AssertJ 3.27.7, Testcontainers 2.0.5 (BOM) ; ArchUnit 1.5.1, WireMock 3.13.2 (standalone), swagger-request-validator 3.0.0
 - OpenAPI Generator (plugin Gradle) : 7.25.0
 - Node : 24 LTS (24.21.0) — Angular : 22.2 — TypeScript : 6.0 (imposé par Angular 22)
@@ -46,7 +46,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 ## Organisation du build
 
 - Paquet racine Java : `fr.suivons.<module>` (ex. `fr.suivons.ingestion.decp`), groupe Gradle `fr.suivons`.
-- Un module applique **un** plugin de convention : `suivons.java-library` (bibliothèque), `suivons.spring-boot-app` (exécutable), `suivons.jooq-codegen` (`db` uniquement) ou `suivons.openapi-contract` (`contract` uniquement). Aucune version ni configuration de compilation dans les `build.gradle.kts` des modules.
+- Un module applique **un** plugin de convention : `suivons.java-library` (bibliothèque), `suivons.spring-boot-app` (exécutable), `suivons.database` (`db` uniquement : codegen jOOQ et commande de migration) ou `suivons.openapi-contract` (`contract` uniquement). Aucune version ni configuration de compilation dans les `build.gradle.kts` des modules.
 - Code jOOQ : généré par `:db:generateJooq` (PostgreSQL éphémère via Testcontainers + migrations Flyway), **versionné** dans `db/src/main/jooq`, régénéré et commité avec chaque migration. Migrations dans `db/src/main/resources/db/migration`.
 - Contrat : `contract/openapi.yaml` (OpenAPI 3.0.3). `./gradlew build` le valide, génère les interfaces Spring (`fr.suivons.contract.api`, DTO dans `fr.suivons.contract.model`, compilés dans `contract`) et le client Angular (`contract/build/generated/typescript-angular`). Le schéma `Problem` (RFC 9457) est porté par `org.springframework.http.ProblemDetail` côté Spring, jamais par un DTO. Les conventions transverses du contrat sont vérifiées par `ContractConventionsTest`.
 - API : contrôleurs de `fr.suivons.api` préfixés par `/api/v1` (`ApiPathConfig`, égal au serveur du contrat) ; Actuator sur `/actuator` (`health` avec sondes, `info`) ; logs JSON ECS ; erreurs RFC 9457. L'API ne migre jamais le schéma : Flyway n'est sur son classpath qu'en TI.
@@ -58,6 +58,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 
 ```bash
 docker compose up -d db                 # PostgreSQL local
+./gradlew :db:migrate                   # appliquer les migrations (commande dédiée, ADR 0005 ; voir docs/exploitation.md)
 ./gradlew build                         # compile + TU + ArchUnit
 ./gradlew integrationTest               # TI (Testcontainers)
 ./gradlew :db:generateJooq              # régénérer le code jOOQ après une migration (Docker requis)
@@ -120,3 +121,4 @@ Branche par défaut : `main`. Toute évolution passe par une PR vers `main` ; fu
 3. Travailler par lot (`SPEC.md` §12) ; ne pas anticiper un lot suivant sans accord.
 4. En cas d'ambiguïté ou de contradiction avec la spec : poser la question, ne pas trancher seul.
 5. À la fin d'une tâche : tests au vert, documentation mise à jour (spec, méthodologie, ADR si besoin), résumé des changements et des points ouverts.
+6. Toute PR suit `.github/pull_request_template.md` et **montre ce qu'elle produit** (section « Ce que ça donne ») : capture d'écran du front, extrait de données réelles en base, appel d'API et sa réponse, ou schéma. Si rien n'est encore visible, le dire et indiquer quand ça le sera.

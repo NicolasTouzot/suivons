@@ -27,12 +27,12 @@ Plan validé le 2026-09-27, une PR vers `main` par étape :
 | Étape | Contenu | État |
 |-------|---------|------|
 | 1 | Schéma : `ops` (sources, runs, rejets, tables Spring Batch), `core` (naf, entreprise, payeur, flux partitionné), rôles `suivons_ingestion` et `suivons_api`, codegen jOOQ, TI du schéma | ✅ fait |
-| 2 | Commande de migration dédiée (ADR 0005) : `./gradlew :db:migrate`, image Flyway en production | ⏭️ prochaine |
-| 3 | `referentiel-client` : clients Sirene et Recherche d'entreprises, quotas, cache (Caffeine), disjoncteur (Resilience4j), mode dégradé | à faire |
+| 2 | Commande de migration dédiée (ADR 0005) : `./gradlew :db:migrate`, image Flyway en production (`docs/exploitation.md`) | ✅ fait |
+| 3 | `referentiel-client` : clients Sirene et Recherche d'entreprises, quotas, cache (Caffeine), disjoncteur (Resilience4j), mode dégradé | ⏭️ prochaine |
 | 4 | `ingestion-core` : pipeline §7.3 en job Spring Batch, points d'extension, idempotence, règle ArchUnit « seul ingestion-core écrit dans core.flux » | à faire |
 | 5 | `ingestion-sirene` : rafraîchissement de `core.entreprise`, chargement de `core.naf` (fichiers INSEE) | à faire |
 
-Décisions du lot : `core.flux` et `core.payeur` créés dès le lot 1 (nécessaires à `ingestion-core`) ; tables Spring Batch dans `ops` (préfixe `batch_`) ; NAF chargée depuis les fichiers INSEE, NAF 2025 prévue dans le modèle ; Resilience4j et Caffeine ajoutés.
+Décisions du lot : **tranche verticale** après le lot 1 (lot 1 bis, SPEC §12 : un extrait DECP réel jusqu'à une fiche entreprise dans le front) et **démo dans chaque PR** (décidé le 2026-09-27, pour rendre le travail visible plus tôt) ; `core.flux` et `core.payeur` créés dès le lot 1 (nécessaires à `ingestion-core`) ; tables Spring Batch dans `ops` (préfixe `batch_`) ; NAF chargée depuis les fichiers INSEE, NAF 2025 prévue dans le modèle ; Resilience4j et Caffeine ajoutés.
 
 ## Décisions prises
 
