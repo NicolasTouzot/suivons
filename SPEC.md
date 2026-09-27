@@ -1,6 +1,6 @@
 # SPEC — Suivre Notre Argent (nom de travail) — MVP
 
-> Statut : v0.2 — spécification du MVP (référentiel entreprises « API d'abord », ADR 0004)
+> Statut : v0.3 — spécification du MVP (référentiel « API d'abord », ADR 0004 ; sources confirmées par le spike du lot 0, `docs/sources/`)
 > Nom et domaine non arrêtés (voir §14 Décisions ouvertes)
 > Ce document est la source de vérité fonctionnelle et technique. Toute évolution de périmètre passe par une mise à jour de ce fichier.
 
@@ -30,7 +30,7 @@ Trois principes non négociables :
 
 ### Hors MVP (V2 et au-delà)
 
-Filtres avancés de recherche, export CSV, partage social, vue payeur, vue groupe (maison-mère / filiales), source PAC, subventions SCDL, ADEME, France 2030, détection de signaux, assistant en langage naturel.
+Filtres avancés de recherche, export CSV, partage social, vue payeur, vue groupe (maison-mère / filiales), source PAC, subventions SCDL, ADEME, France 2030, **registre public des aides de minimis** (canal `AIDE_ETAT`, SIREN direct, octrois depuis 2026 ; licence à vérifier), détection de signaux, assistant en langage naturel.
 
 ## 3. Glossaire
 
@@ -48,30 +48,30 @@ Filtres avancés de recherche, export CSV, partage social, vue payeur, vue group
 
 ## 4. Sources du MVP
 
-> Les endpoints, formats et volumétries exacts sont à **confirmer au lot 0** (spike d'exploration). Ne rien coder en dur sans ce spike.
+> Endpoints, formats, volumétries et pièges **constatés au spike du lot 0** : `docs/sources/` (une note par source). Les URL et paramètres restent de la configuration, jamais du code en dur.
 
 | Source | Rôle | Contenu utile | Identifiant bénéficiaire | Fréquence visée |
 |--------|------|---------------|--------------------------|-----------------|
 | **API Sirene 3.11** (INSEE, `api.insee.fr/api-sirene/3.11`) | Référentiel entreprises, **interrogé à la demande** (pas de copie du stock) | Dénomination, NAF, catégorie juridique, catégorie d'entreprise, siège, état, statut de diffusion | SIREN / SIRET | Mise à jour quotidienne par l'INSEE ; rafraîchissement de notre référentiel minimal : hebdomadaire |
-| **DECP consolidées** (data.gouv.fr, format tabulaire) | Canal `MARCHE` | Acheteur, titulaires, objet, montant, nature (accord-cadre ou non), date de notification, modifications | SIRET du titulaire (généralement présent) | Hebdomadaire |
-| **TAM** (Transparency Award Module, Commission européenne) | Canal `AIDE_ETAT` | Autorité d'octroi, bénéficiaire, montant, instrument, date, régime | Identifiant national (SIREN) souvent présent, sinon nom | Mensuelle |
-| **Kohesio** (Commission européenne) | Canal `FONDS_UE` | Projet, bénéficiaire, montant UE, programme, dates | Nom du bénéficiaire (SIREN rarement présent) | Mensuelle |
+| **DECP consolidées par la DAJ** (`data.economie.gouv.fr`, jeux `decp-v3-marches-valides` pour 2018-2023 et `decp-2022-marches-valides` à partir de 2024, export Parquet) | Canal `MARCHE` | Acheteur (SIRET), titulaires, objet, montant, technique (accord-cadre ou non), date de notification, modifications | SIRET du titulaire (99,8 % des lignes) | Hebdomadaire (source mise à jour chaque jour) |
+| **TAM** (Transparency Award Module, Commission européenne) : **pas d'API**, recherche publique puis export CSV, plafonné à ~1 000 résultats par recherche | Canal `AIDE_ETAT` | Autorité d'octroi, bénéficiaire, élément d'aide et montant nominal, instrument, date, mesure (numéro SA) | SIREN ou SIRET (quasi systématique, formats hétérogènes) | Mensuelle |
+| **Kohesio** (Commission européenne) : API JSON de `kohesio.ec.europa.eu` (non documentée) | Canal `FONDS_UE` | Projet, bénéficiaires, montant UE programmé, programme, dates | **Aucun** : nom du bénéficiaire seul | Mensuelle (collecte incrémentale) |
 
 ### Services d'appui (hors canaux)
 
 | Service | Rôle | Contraintes |
 |---------|------|-------------|
 | **API Sirene 3.11** | Existence et statut des SIREN, identité détaillée de la fiche (lecture en direct) | Clé API (en-tête `X-INSEE-Api-Key-Integration`, secret `INSEE_API_KEY`) ; **30 req/min et 2 000 req/h** ; requêtes multicritères jusqu'à 1 000 unités par appel |
-| **API Recherche d'entreprises** (DINUM, `recherche-entreprises.api.gouv.fr`) | Candidats pour le rattachement par nom ; repli de la recherche pour les entreprises sans flux | Sans clé ; limite de débit à confirmer au spike |
+| **API Recherche d'entreprises** (DINUM, `recherche-entreprises.api.gouv.fr`) | Candidats pour le rattachement par nom ; repli de la recherche pour les entreprises sans flux | Sans clé ; **7 req/s par IP, 30 req/s par ASN** (`429` + `Retry-After`) ; détection des robots côté fournisseur (bloque l'environnement cloud de développement) : à vérifier depuis l'hébergement cible |
 
 Principe (ADR 0004) : **une donnée disponible par API n'est pas recopiée en base**, sauf les champs strictement nécessaires aux calculs, à la recherche et au respect du RGPD (§6.3).
 
 ### Pièges connus à traiter
 
-- **DECP** : un même marché peut apparaître sur plusieurs lignes (co-titulaires, avenants) ; doublons de publication ; montants aberrants (1 €, 1 Md€) ; accords-cadres exprimés en plafond ; SIRET parfois mal saisi.
-- **TAM** : seuil de publication (≥ 100 k€ dans le cas général) : les aides en dessous sont invisibles ; montants parfois en fourchette.
-- **Kohesio** : rattachement par nom uniquement dans la majorité des cas : forte dépendance au moteur de réconciliation.
-- **SIRENE** : les unités en **diffusion partielle** (`statutDiffusion = P`) ne doivent jamais être exposées nominativement ; le statut est à relire à chaque rafraîchissement (oppositions possibles à tout moment). Quotas API bas : toute lecture en direct passe par un cache et un disjoncteur.
+- **DECP** : deux formats à fusionner (2019 et 2022) ; lignes **aplaties** (une ligne par marché × titulaire × modification × acte de sous-traitance), le montant du marché étant répété sur chaque ligne ; valeur sentinelle `CDL` pour « vide » ; pas de clé naturelle unique ; un même marché publié par plusieurs plateformes ; montants aberrants (≤ 1 €, ≥ 1 Md€) ; accords-cadres exprimés en plafond (37 % des lignes) ; SIRET mal saisi, et zéros de tête perdus dans le format 2019 (SIRET typé nombre). Règles de traitement : §6.4.
+- **TAM** : seuil de publication (≥ 100 k€ dans le cas général) : les aides en dessous sont invisibles ; montants en tranches pour certaines aides fiscales ; deux montants (élément d'aide, nominal) ; identifiant national avec espaces ou espaces insécables ; export limité à ~1 000 résultats par recherche : collecte par **fenêtres de dates adaptatives** ; formulaire web (jeton CSRF, session) : fragile, surveillé. Conditions de réutilisation à vérifier avant le lot 4.
+- **Kohesio** : aucun identifiant national, rattachement par nom uniquement : forte dépendance au moteur de réconciliation ; montant porté par le projet et non par bénéficiaire ; montant **programmé**, pas versé ; bénéficiaires disponibles seulement dans le détail de chaque projet (~1 s par appel, 63 000 projets français) : collecte incrémentale ; API non documentée, surveillée. Conditions de réutilisation à vérifier avant le lot 5.
+- **SIRENE** : les unités en **diffusion partielle** (`statutDiffusion = P`) et les **entrepreneurs individuels** (catégorie juridique `1000`, ~5 % des titulaires DECP, même en diffusion `O`) ne doivent jamais être exposés nominativement ; le statut est à relire à chaque rafraîchissement (oppositions possibles à tout moment). Quotas API bas : toute lecture en direct passe par un cache et un disjoncteur.
 
 ## 5. Spécifications fonctionnelles
 
@@ -169,7 +169,7 @@ Objectif : pouvoir **rejouer la transformation** sans retélécharger, et prouve
 
 ### 6.3 Schéma `core`
 
-**`core.entreprise`** — référentiel **minimal**, limité aux bénéficiaires d'au moins un flux : `siren` (PK), `denomination`, `naf_code`, `commune_siege`, `departement_siege`, `etat` (`ACTIVE`, `CESSEE`), `diffusible` (bool), `personne_physique` (bool), `rafraichi_le`.
+**`core.entreprise`** — référentiel **minimal**, limité aux bénéficiaires d'au moins un flux : `siren` (PK), `denomination`, `naf_code`, `commune_siege`, `departement_siege`, `etat` (`ACTIVE`, `CESSEE`), `diffusible` (bool, faux si `statutDiffusionUniteLegale = P`), `personne_physique` (bool, vrai si catégorie juridique `1000`), `rafraichi_le`.
 
 | Champ | Raison du stockage local |
 |-------|--------------------------|
@@ -217,12 +217,25 @@ Contrainte d'unicité `(source_code, source_record_id)` : garantit l'**idempoten
 | Accord-cadre | null (0 dans les agrégats) | montant maximum | `PLAFOND` |
 | Co-titulaires (montant non ventilé) | null (0 dans les agrégats) | montant total, attribué à chaque co-titulaire | `PARTAGE` |
 | Marché modifié par avenant | dernier montant connu | dernier montant connu | selon le cas |
-| Aide TAM en fourchette | borne basse | borne haute | `PLAFOND` |
-| Aide TAM ou projet Kohesio à montant unique | montant | montant | `FERME` |
+| Aide TAM en fourchette (tranche) | bas de la tranche | haut de la tranche | `PLAFOND` |
+| Aide TAM à montant unique | élément d'aide | élément d'aide | `FERME` |
+| Projet Kohesio, bénéficiaire unique | montant UE du projet | montant UE du projet | `FERME` |
+| Projet Kohesio, plusieurs bénéficiaires (montant non ventilé) | null (0 dans les agrégats) | montant UE du projet, attribué à chaque bénéficiaire | `PARTAGE` |
 
 Conséquence assumée : la somme des bornes plafond sur plusieurs entreprises peut dépasser l'argent réellement dépensé. C'est documenté en méthodologie ; aucun total global n'additionne des plafonds.
 
-**Déduplication DECP** : un marché est identifié par `uid` (SIRET acheteur + identifiant interne) ; on conserve la dernière modification publiée par `(uid, titulaire)`.
+**Montant de référence TAM** : l'**élément d'aide** (équivalent-subvention, toujours renseigné). Le montant nominal, quand il existe (prêts, garanties), est conservé et affiché en complément dans le détail du flux (F3), jamais agrégé.
+
+**Montant Kohesio** : soutien UE **programmé** pour le projet (et non versé), qualifié comme tel dans l'interface et la méthodologie.
+
+**Déduplication DECP** : un marché est identifié par `uid` (SIRET acheteur + identifiant interne) ; **un flux par `(uid, titulaire)`**, avec `source_record_id = <SIRET acheteur>|<id>|<identifiant titulaire>` pour les deux formats (2019 et 2022). Règles :
+
+- la valeur `CDL` vaut « vide » ;
+- montant = dernier montant connu après modifications (`montantmodification` de la modification la plus récente, sinon `montant`) ;
+- les lignes d'actes de sous-traitance n'apportent aucun montant au titulaire (la sous-traitance n'est pas observée, §6.4 Couverture) ;
+- un même `(uid, titulaire)` publié par plusieurs plateformes est fusionné (dernière `datepublicationdonnees`) ;
+- co-titulaires d'un groupement (`titulaire_id_2..3` renseignés) → `PARTAGE` ; titulaires distincts à montants distincts pour un même `uid` (lots, accord-cadre multi-attributaire) → un flux chacun, avec son propre montant ;
+- identifiant titulaire recomplété à 14 chiffres (format 2019) puis contrôlé (Luhn) avant rattachement.
 
 **Montants aberrants** (`qualite = ABERRANT`) : montant ≤ 1 €, ou montant > seuil configurable (défaut 1 Md€, sauf liste blanche). Ils restent visibles en F3, **exclus de tous les agrégats**. Seuils à calibrer au lot 2.
 
@@ -467,7 +480,8 @@ Tout module est testé aux trois niveaux applicables. **Pas de H2** : les TI tou
 ### 11.2 RGPD et données personnelles
 
 - Les entreprises en **diffusion partielle** SIRENE ne sont jamais affichées nominativement.
-- Les **personnes physiques** (entrepreneurs individuels) sont exclues de l'affichage nominatif dans le MVP ; leurs flux restent comptés dans les agrégats globaux anonymes.
+- Les **personnes physiques** (entrepreneurs individuels, catégorie juridique `1000`) sont exclues de l'affichage nominatif dans le MVP, **même en diffusion `O`** ; leurs flux restent comptés dans les agrégats globaux anonymes.
+- Règle de masquage unique : aucune donnée nominative si `diffusible = faux` **ou** `personne_physique = vrai` (§6.3).
 - Signalements : email facultatif, durée de conservation limitée (à fixer), mention d'information.
 - Mesure d'audience sans cookie ni traçage individuel.
 
@@ -516,9 +530,10 @@ Chaque lot se termine avec : tests TU / TI / TS applicables au vert, documentati
 | Sujet | Options | Échéance |
 |-------|---------|----------|
 | Nom et domaine | À choisir, disponibilité du domaine à vérifier | Avant mise en ligne |
-| Hébergement | Hébergeur français (OVH, Scaleway, Clever Cloud…) | Lot 7 |
+| Hébergement | Hébergeur français (OVH, Scaleway, Clever Cloud…) ; critère : accès à l'API Recherche d'entreprises (limite par ASN, détection des robots) vérifié depuis l'hébergeur | Lot 7 |
 | ~~Licence du code~~ | **Tranché : AGPL-3.0-or-later** (voir `docs/adr/0003-licence-agpl.md`) | Lot 0 ✔ |
 | Seuils (aberrants, confiance de rattachement) | Valeurs par défaut du §6, à calibrer | Lots 2 et 5 |
 | Durée de conservation des signalements | 6 à 12 mois | Lot 6 |
 | Quota API Sirene | Accès public (30 req/min, 2 000 req/h) suffisant ? Sinon demande d'un quota supérieur à l'INSEE | Lot 7 (selon trafic et exploration des robots) |
-| Accès à `recherche-entreprises.api.gouv.fr` et `www.data.gouv.fr` depuis l'environnement cloud | Connexions coupées à ce jour ; à résoudre ou contourner (session locale) | Lot 0 (spike) |
+| ~~Accès à `recherche-entreprises.api.gouv.fr` et `www.data.gouv.fr` depuis l'environnement cloud~~ | **Tranché** : DECP lu sur `data.economie.gouv.fr` (DAJ) ; Recherche d'entreprises conservée, bloquée seulement par la détection des robots sur l'environnement cloud de développement (tests en session locale, WireMock en CI) | Lot 0 ✔ |
+| Conditions de réutilisation TAM et Kohesio | À vérifier (réutilisation des données de la Commission) ; à défaut, demande à COMP-TAM-SUPPORT et à la DG REGIO | Avant les lots 4 et 5 |

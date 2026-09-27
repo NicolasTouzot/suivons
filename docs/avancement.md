@@ -2,7 +2,7 @@
 
 > Note de passation entre sessions. À lire après `CLAUDE.md` et `SPEC.md`, et à tenir à jour en fin de session.
 
-## Lot 0 — Socle (terminé sous réserve du premier run CI et des écarts de sources à trancher)
+## Lot 0 — Socle (terminé sous réserve du premier run CI)
 
 Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur après chacune :
 
@@ -24,6 +24,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 - Licence AGPL-3.0-or-later (ADR 0003). Conséquence : lien « Code source » dans le front (lot 6 au plus tard), dépendances compatibles AGPL.
 - Pas de copie de SIRENE ; référentiel minimal des bénéficiaires, identité lue en direct (ADR 0004).
+- Écarts du spike des sources tranchés le 2026-09-27 (SPEC v0.3, `docs/sources/README.md`) : DECP lu chez la DAJ (2 formats), un flux DECP par (marché, titulaire), TAM par fenêtres de dates avec l'élément d'aide comme montant, Kohesio multi-bénéficiaires en `PARTAGE`, masquage si diffusion partielle ou entrepreneur individuel, Recherche d'entreprises conservée (blocage anti-robots propre au cloud de dev), registre de minimis en V2.
 - Migrations appliquées par une commande dédiée avec un rôle de migration, jamais par les applications (ADR 0005).
 - API INSEE : **API Sirene 3.11**, plan « Accès public » (clé API, 30 req/min, 2 000 req/h). La clé est lue dans `INSEE_API_KEY`, en production comme dans l'environnement cloud Claude (variable d'environnement classique). Le client n'envoie l'en-tête `X-INSEE-Api-Key-Integration` **que** sur `/api-sirene/*`.
 
@@ -57,7 +58,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 ## Points ouverts
 
-- **Écarts à la spec issus du spike des sources** : 8 décisions à prendre, listées dans `docs/sources/README.md` (source DECP, dédoublonnage DECP, collecte et montants TAM, Kohesio, masquage des entrepreneurs individuels, Recherche d'entreprises, registre de minimis).
+- Conditions de réutilisation TAM et Kohesio à vérifier avant les lots 4 et 5 (SPEC §14).
 - Pistes hors spec (de minimis, BOAMP, annuaire de l'administration, Melodi, info-financière) : `docs/sources/pistes.md`.
 - CI : premier run à l'ouverture d'une PR (jamais exécutée sur GitHub).
 - Compléments du spike en session locale (Recherche d'entreprises, data.gouv.fr, conditions de réutilisation TAM et Kohesio) : `docs/sources/README.md`.

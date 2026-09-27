@@ -13,9 +13,9 @@
 
 ## Accès depuis le cloud
 
-Connexion TLS établie puis coupée par l'amont (`ws_closed_mid_exchange`, 39 octets reçus), alors que `annuaire-entreprises.data.gouv.fr` répond : **filtrage de l'IP ou de l'ASN du datacenter** par le fournisseur. Même comportement pour `www.data.gouv.fr`.
+Connexion TLS établie puis coupée par l'amont (`ws_closed_mid_exchange`, 39 octets reçus), alors que `annuaire-entreprises.data.gouv.fr` répond. Selon le porteur, l'API fonctionne depuis d'autres hébergements : le blocage vient de la **détection des robots** par le fournisseur sur cet environnement cloud. Même comportement pour `www.data.gouv.fr`.
 
 ## Conséquences
 
 - Spike réel à faire en session locale (temps de réponse, qualité du score pour le rattachement Kohesio et TAM).
-- **Hébergement de production** : la limite par ASN s'applique à notre hébergeur ; un cloud public peut être bridé ou bloqué. Critère de choix de l'hébergement, et mode dégradé obligatoire (SPEC §8 : le repli de recherche peut se dégrader, jamais les montants).
+- **Hébergement de production** : la limite par ASN et la détection des robots s'appliquent à notre hébergeur : accès à vérifier depuis l'hébergeur retenu (SPEC §14, lot 7) ; mode dégradé obligatoire (SPEC §8 : le repli de recherche peut se dégrader, jamais les montants).

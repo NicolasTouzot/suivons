@@ -11,18 +11,20 @@
 | API Recherche d'entreprises | appui | [recherche-entreprises.md](recherche-entreprises.md) | ❌ filtrage du fournisseur | — | — |
 | Pistes hors spec | — | [pistes.md](pistes.md) | ✅ | — | — |
 
-## Écarts à la spec et décisions à prendre
+## Écarts à la spec : décisions du 2026-09-27
 
-| # | Constat | Proposition | Impact |
+Toutes reportées dans `SPEC.md` v0.3.
+
+| # | Constat | Décision | Où |
 |---|---|---|---|
-| 1 | DECP : la source prévue (data.gouv.fr, format tabulaire) est inaccessible depuis le cloud ; la DAJ publie les mêmes données consolidées sur `data.economie.gouv.fr`, en deux formats (2019 pour 2018-2023, 2022 pour 2024 →) | Source DECP = jeux DAJ `decp-v3-marches-valides` + `decp-2022-marches-valides`, export Parquet ; vérifier en session locale l'équivalence avec le jeu data.gouv.fr | SPEC §4 |
-| 2 | DECP : lignes aplaties (modifications, sous-traitance), montants répétés, sentinelle `CDL`, pas de clé naturelle | Règles de dédoublonnage et `source_record_id` composé, à écrire dans la méthodologie avant le lot 3 | SPEC §4 (pièges), §6.4 |
-| 3 | TAM : aucune API ; export CSV plafonné à ~1 000 lignes par recherche ; conditions de réutilisation non trouvées | Collecte par fenêtres de dates adaptatives ; vérifier les conditions de réutilisation (ou demander un accès à COMP-TAM-SUPPORT) | SPEC §4, risque lot 4 |
-| 4 | TAM : deux montants (nominal / élément d'aide), montants en tranches pour l'aide fiscale | Choisir le montant de référence (proposition : élément d'aide ; nominal affiché en complément) ; tranche → ferme = bas, plafond = haut | SPEC §6.4, méthodologie |
-| 5 | Kohesio : API non documentée, montant par projet et non par bénéficiaire, collecte lente | Collecte incrémentale ; règle de répartition multi-bénéficiaires (proposition : plafond = montant du projet, ferme = 0) ; montant programmé et non versé | SPEC §4, §6.4 |
-| 6 | Sirene : ~5 % des titulaires DECP sont des entrepreneurs individuels (personnes physiques) | Masquage si `statutDiffusion = P` **ou** catégorie juridique `1000` | SPEC §6.3, §11.2 |
-| 7 | Recherche d'entreprises : bloquée par ASN depuis le cloud ; limite 30 req/s par ASN | Spike en local ; critère d'hébergement ; mode dégradé | SPEC §4, §14 |
-| 8 | Registre de minimis : SIREN direct, petites aides d'État depuis 2026 | Candidat au canal `AIDE_ETAT` (MVP ou V2), licence à vérifier | SPEC §2, §4 |
+| 1 | DECP : data.gouv.fr inaccessible depuis le cloud ; la DAJ publie les DECP consolidées sur `data.economie.gouv.fr` en deux formats | Source DECP = jeux DAJ `decp-v3-marches-valides` (2018-2023) + `decp-2022-marches-valides` (2024 →), export Parquet ; équivalence avec data.gouv.fr à vérifier en local, sans bloquer | SPEC §4 |
+| 2 | DECP : lignes aplaties, montants répétés, sentinelle `CDL`, pas de clé naturelle | Un flux par (marché, titulaire), `source_record_id = acheteur\|id\|titulaire`, dernier montant connu, sous-traitance sans montant, fusion des doublons de plateformes | SPEC §6.4 |
+| 3 | TAM : pas d'API, export plafonné à ~1 000 lignes par recherche | Collecte par fenêtres de dates adaptatives ; conditions de réutilisation à vérifier avant le lot 4 | SPEC §4, §14 |
+| 4 | TAM : deux montants, tranches pour l'aide fiscale | Référence = élément d'aide ; nominal affiché en complément (F3), jamais agrégé ; tranche → ferme = bas, plafond = haut | SPEC §6.4 |
+| 5 | Kohesio : montant par projet, plusieurs bénéficiaires possibles | Bénéficiaire unique → `FERME` ; plusieurs → `PARTAGE` (ferme nul, plafond = montant du projet) ; montant qualifié de « programmé » ; collecte incrémentale | SPEC §4, §6.4 |
+| 6 | ~5 % des titulaires DECP sont des entrepreneurs individuels | Masquage si `statutDiffusion = P` **ou** catégorie juridique `1000` | SPEC §4, §6.3, §11.2 |
+| 7 | Recherche d'entreprises bloquée depuis le cloud | API conservée : elle fonctionne ailleurs, le blocage vient de la détection des robots par le fournisseur sur cet environnement. Tests en session locale, WireMock en CI ; accès vérifié depuis l'hébergeur retenu (critère du lot 7) ; mode dégradé | SPEC §4, §14 |
+| 8 | Registre de minimis : SIREN direct, petites aides depuis 2026 | **V2** ; licence à vérifier | SPEC §2 |
 
 ## Reste à faire en session locale
 
