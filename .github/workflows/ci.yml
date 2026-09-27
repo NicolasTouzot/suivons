@@ -1,0 +1,133 @@
+# Intégration continue (SPEC.md §10) : build, TU, ArchUnit, TI, lint et TS front, dépendances.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  JAVA_VERSION: '25'
+
+jobs:
+  back:
+    name: Back (build, TU, ArchUnit, TI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Build, TU, ArchUnit, validation du contrat
+        run: ./gradlew build
+      - name: TI (Testcontainers PostgreSQL)
+        run: ./gradlew integrationTest
+      - name: Code jOOQ généré à jour
+        run: |
+          ./gradlew :db:generateJooq
+          if [ -n "$(git status --porcelain db/src/main/jooq)" ]; then
+            echo "::error::Code jOOQ désynchronisé des migrations : lancer ./gradlew :db:generateJooq et commiter."
+            git status --porcelain db/src/main/jooq
+            exit 1
+          fi
+      - name: Rapports de tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-back
+          path: '**/build/reports/tests/'
+          retention-days: 7
+
+  contrat:
+    name: Contrat (lint OpenAPI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: front/.nvmrc
+      - name: Lint Redocly
+        run: npx --yes @redocly/cli@2.54.3 lint --config contract/redocly.yaml contract/openapi.yaml
+
+  front:
+    name: Front (lint, TU, TS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: front
+    steps:
+      - uses: actions/checkout@v5
+      # Java : génération du client d'API depuis le contrat (npm run generate:api)
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: front/.nvmrc
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: TU (Vitest)
+        run: npm test
+      - name: Navigateur Playwright
+        run: npx playwright install --with-deps chromium
+      - name: TS (Playwright + axe-core)
+        run: npm run e2e
+      - name: Rapport Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-playwright
+          path: front/playwright-report/
+          retention-days: 7
+
+  dependances:
+    name: Dépendances (vulnérabilités, licences)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      # Graphe des dépendances Gradle transmis à GitHub (alertes Dependabot, revue de PR)
+      - uses: gradle/actions/dependency-submission@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: front/.nvmrc
+      - name: Vulnérabilités npm (dépendances d'exécution)
+        working-directory: front
+        run: npm audit --omit=dev --audit-level=high
+      # Bloque une PR qui introduit une vulnérabilité élevée ou une licence incompatible avec l'AGPL-3.0
+      - name: Revue des dépendances
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          retry-on-snapshot-warnings: true
+          comment-summary-in-pr: on-failure
+          deny-licenses: >-
+            GPL-1.0-only, GPL-2.0-only, LGPL-2.0-only, SSPL-1.0, BUSL-1.1, Elastic-2.0,
+            CC-BY-NC-1.0, CC-BY-NC-2.0, CC-BY-NC-2.5, CC-BY-NC-3.0, CC-BY-NC-4.0,
+            CC-BY-NC-SA-4.0, CC-BY-NC-ND-4.0, Commons-Clause, JSON

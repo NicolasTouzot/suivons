@@ -1,0 +1,27 @@
+# Mises à jour des dépendances : une PR groupée par écosystème et par semaine.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      gradle:
+        patterns: ['*']
+  - package-ecosystem: npm
+    directory: /front
+    schedule:
+      interval: weekly
+    groups:
+      angular:
+        patterns: ['@angular/*', '@angular-devkit/*', 'angular-eslint']
+      npm:
+        patterns: ['*']
+        exclude-patterns: ['@angular/*', '@angular-devkit/*', 'angular-eslint']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
