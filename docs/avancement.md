@@ -2,7 +2,7 @@
 
 > Note de passation entre sessions. À lire après `CLAUDE.md` et `SPEC.md`, et à tenir à jour en fin de session.
 
-## Lot 0 — Socle (terminé sous réserve du premier run CI)
+## Lot 0 — Socle (terminé)
 
 Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur après chacune :
 
@@ -17,7 +17,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 | 5 | `api` minimal : démarrage, Actuator, logs JSON, TI | ✅ fait |
 | 6 | Règles ArchUnit (§7.2, dont `referentiel-client` sans `db`) | ✅ fait |
 | 7 | `front` Angular standalone + SSR, Vitest, ESLint ; Playwright smoke + axe-core | ✅ fait |
-| 8 | CI GitHub Actions (build, TU, TI, lint front, TS, scan dépendances et licences compatibles AGPL) | ✅ fait (à confirmer au premier run) |
+| 8 | CI GitHub Actions (build, TU, TI, lint front, TS, scan dépendances et licences compatibles AGPL) | ✅ fait |
 | 9 | Spike sources → `docs/sources/` (endpoints, formats, volumétrie, identifiants, écarts à la spec) | ✅ fait (compléments en session locale, voir `docs/sources/README.md`) |
 
 ## Décisions prises
@@ -34,7 +34,8 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 - API (étape 5) : starters Boot 4 `webmvc`, `actuator`, `jooq` ; threads virtuels ; datasource par variables d'environnement `SPRING_DATASOURCE_*` (profil `dev` aligné sur docker-compose). Flyway uniquement sur le classpath des TI de l'API (migrations du module `db` appliquées au démarrage du test) : migrations en production par une **commande dédiée** avec un rôle de migration (ADR 0005, décidé le 2026-09-27), forme concrète au lot 1 avec les rôles PostgreSQL. Le TU de démarrage de l'API est remplacé par le TI `ApiApplicationIT` (l'application exige désormais une base). Validation des réponses par swagger-request-validator : à brancher avec le premier endpoint (lot 2) ; le contrat est déjà embarqué dans le jar `contract` (`classpath:openapi/openapi.yaml`).
 - Architecture (étape 6) : projet Gradle de test `architecture` (hors §7.2, sans code de production) qui importe toutes les classes `fr.suivons` et vérifie : matrice des modules (couches), indépendance des sources, `api` sans ingestion ni réconciliation, `domain` pur, `referentiel-client` sans base, pas de JPA, écritures jOOQ de l'`api` confinées à `fr.suivons.api.signalement`. Autotest de chaque règle par des classes en infraction volontaire. `archRule.failOnEmptyShould=false` et couches optionnelles tant que des modules sont vides. **Reporté au lot 1** : « seul `ingestion-core` écrit dans `core.flux` » (règle sur la classe jOOQ générée de la table).
 - Front (étape 7) : `ng new` Angular 22.2 (standalone, zoneless, SSR, Vitest), angular-eslint 22.5 (règles d'accessibilité des templates incluses), Playwright 1.63 + axe-core 4.13. Coque en français (`lang="fr"`, lien d'évitement, repères `header`/`main`/`footer`), tokens provisoires : l'identité visuelle (§9.2) reste à définir avec les écrans. TS de fumée : rendu serveur, contenu, axe WCAG 2.2 AA en thèmes clair et sombre, desktop et mobile 375 px. Serveur SSR : `NG_ALLOWED_HOSTS` obligatoire (hôtes de production à fixer au déploiement). Lien « Code source » (AGPL) : lot 6 comme prévu.
-- CI (étape 8) : GitHub Actions, 4 jobs bloquants (`back`, `contrat`, `front`, `dependances`). Workflow validé par actionlint et étapes rejouées localement, mais **jamais exécuté sur GitHub** : premier run à l'ouverture d'une PR. Actions épinglées sur leur version majeure (checkout v5, setup-java v5, setup-node v5, gradle/actions v5, upload-artifact v4, dependency-review v4), non vérifiées comme dernières disponibles : Dependabot les mettra à jour. Licences refusées (liste de départ, à revoir) : GPL-1.0/2.0-only, LGPL-2.0-only, SSPL, BUSL, Elastic-2.0, CC-BY-NC*, Commons-Clause, JSON. La revue des dépendances ne distingue pas les dépendances de test (ex. JUnit, EPL-2.0, non refusée).
+- CI (étape 8) : GitHub Actions, 4 jobs bloquants (`back`, `contrat`, `front`, `dependances`). Premiers runs le 2026-09-27 : `back`, `contrat` et `front` verts sur GitHub ; CI verte sur `main`. Corrections : dependency graph activé sur le dépôt ; envoi du graphe Gradle limité aux runs ayant un jeton en écriture (push, PR internes ; pas les PR Dependabot) ; liste de licences refusées restreinte aux identifiants SPDX (GPL-1.0/2.0-only, LGPL-2.0-only, SSPL, BUSL, Elastic-2.0, CC-BY-NC*, JSON ; la « Commons Clause » n'a pas d'identifiant SPDX). La revue des dépendances ne distingue pas les dépendances de test (ex. JUnit, EPL-2.0, non refusée). Dependabot : TypeScript et `@types/node` bloqués sur les plages du projet.
+- Branches (2026-09-27) : `main` est la branche par défaut ; toute évolution passe par une PR vers `main`, CI verte avant fusion.
 - Versions : les bibliothèques gérées par le BOM Spring Boot suivent le BOM (ex. Flyway 12.4 et non 13.8, jOOQ 3.21.7 et non 3.21.9) ; seules les dépendances hors BOM sont prises à leur dernière version. PostgreSQL 18 (la 19 est en bêta). TypeScript 6.0 et non 7.0 (contrainte d'Angular 22).
 - API INSEE : vérifié le 2026-09-26, `GET https://api.insee.fr/api-sirene/3.11/siren/552032534` répond 200 avec la clé injectée par le proxy. Cette injection s'appliquait à tout `api.insee.fr` et faisait échouer **Melodi** (`/melodi/*`, API ouverte sans abonnement possible) en 401 : injection proxy abandonnée au profit de la variable d'environnement. Revérifié le 2026-09-26 : Sirene 200 avec `INSEE_API_KEY`, 401 sans ; Melodi 200 sans clé.
 
@@ -60,7 +61,6 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 
 - Conditions de réutilisation TAM et Kohesio à vérifier avant les lots 4 et 5 (SPEC §14).
 - Pistes hors spec (de minimis, BOAMP, annuaire de l'administration, Melodi, info-financière) : `docs/sources/pistes.md`.
-- CI : premier run à l'ouverture d'une PR (jamais exécutée sur GitHub).
 - Compléments du spike en session locale (Recherche d'entreprises, data.gouv.fr, conditions de réutilisation TAM et Kohesio) : `docs/sources/README.md`.
 - **Hébergement de production** : la limite par ASN de l'API Recherche d'entreprises (30 req/s, voire blocage des clouds publics) est un critère de choix (`docs/sources/recherche-entreprises.md`).
 - Quota API Sirene suffisant face aux robots d'indexation (lot 7).

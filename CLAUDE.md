@@ -74,6 +74,8 @@ cd front && npm run e2e                 # TS Playwright + axe-core (serveur SSR 
 
 `.github/workflows/ci.yml`, sur chaque pull request et sur `main` : jobs `back` (build, TU, ArchUnit, TI, code jOOQ à jour), `contrat` (lint Redocly), `front` (lint, TU, TS Playwright + axe-core) et `dependances` (`npm audit`, graphe Gradle, revue des vulnérabilités et des licences incompatibles avec l'AGPL sur les PR). Tous bloquants. Dependabot (`.github/dependabot.yml`) propose les mises à jour chaque semaine.
 
+Branche par défaut : `main`. Toute évolution passe par une PR vers `main` ; fusion uniquement avec la CI verte.
+
 ## Règles d'architecture (non négociables)
 
 - **Modularité** : un module `ingestion-<source>` ne dépend jamais d'un autre. `api` ne dépend ni des modules `ingestion-*`, ni de `reconciliation`. `domain` ne dépend ni de Spring, ni de jOOQ. Ces règles sont vérifiées par ArchUnit (module `architecture`, dans `./gradlew build`) : ne pas les désactiver. Toute nouvelle règle vient avec son autotest (classe en infraction volontaire dans un paquet `*.violation`).
