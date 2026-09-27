@@ -111,8 +111,11 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      # Graphe des dépendances Gradle transmis à GitHub (alertes Dependabot, revue de PR)
+      # Graphe des dépendances Gradle transmis à GitHub (alertes Dependabot, revue de PR).
+      # Les runs Dependabot n'ont qu'un jeton en lecture : pas d'envoi possible, la revue porte alors
+      # sur les manifestes lus directement par GitHub (npm, actions) et sur le graphe de main.
       - uses: gradle/actions/dependency-submission@v5
+        if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
       - uses: actions/setup-node@v5
         with:
           node-version-file: front/.nvmrc
@@ -126,7 +129,8 @@ jobs:
         with:
           fail-on-severity: high
           retry-on-snapshot-warnings: true
-          comment-summary-in-pr: on-failure
+          # Commentaire impossible avec le jeton en lecture des runs Dependabot
+          comment-summary-in-pr: ${{ github.actor != 'dependabot[bot]' && 'on-failure' || 'never' }}
           deny-licenses: >-
             GPL-1.0-only, GPL-2.0-only, LGPL-2.0-only, SSPL-1.0, BUSL-1.1, Elastic-2.0,
             CC-BY-NC-1.0, CC-BY-NC-2.0, CC-BY-NC-2.5, CC-BY-NC-3.0, CC-BY-NC-4.0,
