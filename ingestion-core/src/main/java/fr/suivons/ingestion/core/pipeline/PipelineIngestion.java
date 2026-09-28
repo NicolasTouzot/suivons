@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import fr.suivons.domain.FluxInvalideException;
 import fr.suivons.domain.FluxNormalise;
+import fr.suivons.domain.Siren;
 import fr.suivons.ingestion.core.source.ContexteExtraction;
 import fr.suivons.ingestion.core.source.EnregistrementSource;
 import fr.suivons.ingestion.core.source.RafraichissementMart;
@@ -124,6 +126,13 @@ public class PipelineIngestion {
                 .writer(lot -> brut.enregistrer(source.tableBrute(), etat.runId, lot.getItems()))
                 .build();
 
+        Step preparation = new StepBuilder("preparation-rattachement-" + source.code(), jobRepository)
+                .<Siren, Siren>chunk(tailleLot)
+                .transactionManager(transactions)
+                .reader(lecteurSirens(source, etat, options))
+                .writer(lot -> rattacheur.preparer(new ArrayList<>(lot.getItems())))
+                .build();
+
         Step transformation = new StepBuilder("transformation-" + source.code(), jobRepository)
                 .<EnregistrementSource, Traitement>chunk(tailleLot)
                 .transactionManager(transactions)
@@ -162,7 +171,7 @@ public class PipelineIngestion {
                 })
                 .start(extraction)
                 .on(RIEN_A_FAIRE).to(finalisation)
-                .from(extraction).on("*").to(chargementBrut).next(transformation).next(finalisation)
+                .from(extraction).on("*").to(chargementBrut).next(preparation).next(transformation).next(finalisation)
                 .end()
                 .build();
     }
@@ -232,6 +241,33 @@ public class PipelineIngestion {
                 if (flux != null) {
                     flux.close();
                 }
+            }
+        };
+    }
+
+    /**
+     * SIREN distincts fournis par la source pour les enregistrements à transformer, dans l'ordre : un premier
+     * parcours des données brutes, dont les transformations sont refaites ensuite (elles sont sans effet de bord).
+     */
+    private ItemStreamReader<Siren> lecteurSirens(SourceFlux source, EtatRun etat, Options options) {
+        return new ItemStreamReader<>() {
+            private Iterator<Siren> sirens;
+
+            @Override
+            public Siren read() throws Exception {
+                if (sirens == null) {
+                    TreeSet<String> distincts = new TreeSet<>();
+                    ItemStreamReader<EnregistrementSource> brutes = lecteurBrut(source, etat, options);
+                    EnregistrementSource enregistrement;
+                    while ((enregistrement = brutes.read()) != null) {
+                        traiter(source, enregistrement).flux()
+                                .flatMap(FluxNormalise::sirenSource)
+                                .ifPresent(siren -> distincts.add(siren.valeur()));
+                    }
+                    sirens = distincts.stream().map(Siren::new).iterator();
+                    LOG.info("Ingestion {} : {} SIREN distincts à préparer", source.code(), distincts.size());
+                }
+                return sirens.hasNext() ? sirens.next() : null;
             }
         };
     }

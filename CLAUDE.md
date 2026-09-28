@@ -38,7 +38,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 - PostgreSQL : 18 (image `postgres:18.6`), pilote JDBC 42.7.13 (BOM)
 - jOOQ : 3.21.7 (BOM, runtime et codegen) — Flyway : 12.4.0 (BOM ; image `flyway/flyway:12.4.0-alpine` pour la commande de migration)
 - Clients d'API : Resilience4j 2.4.0 (disjoncteur, relances, limiteur de débit), Caffeine 3.2.4 (BOM), Jackson 3.1.5 (BOM), `RestClient` de Spring
-- Fichiers Excel (nomenclature NAF de l'INSEE) : Apache POI 5.5.1
+- Fichiers Excel (nomenclature NAF de l'INSEE) : Apache POI 5.5.1 ; exports Parquet (DECP) : DuckDB JDBC 1.5.5.1
 - Tests : JUnit Jupiter 6.0.3, AssertJ 3.27.7, Testcontainers 2.0.5 (BOM) ; ArchUnit 1.5.1, WireMock 3.13.2 (standalone), swagger-request-validator 3.0.0
 - OpenAPI Generator (plugin Gradle) : 7.25.0
 - Node : 24 LTS (24.21.0) — Angular : 22.2 — TypeScript : 6.0 (imposé par Angular 22)

@@ -228,6 +228,33 @@ class PipelineIngestionIT {
         assertThat(lots).as("lots de 2 enregistrements, rejet exclu").containsExactly(2, 1);
     }
 
+    @Test
+    void prepareLeRattachementAvecTousLesSirenDistinctsAvantLaTransformation() {
+        java.util.List<String> evenements = new java.util.ArrayList<>();
+        Rattacheur prepare = new Rattacheur() {
+            @Override
+            public Rattachement rattacher(FluxNormalise flux) {
+                return rattacheur.rattacher(flux);
+            }
+
+            @Override
+            public java.util.List<Rattachement> rattacherLot(java.util.List<FluxNormalise> lot) {
+                evenements.add("lot");
+                return Rattacheur.super.rattacherLot(lot);
+            }
+
+            @Override
+            public void preparer(java.util.List<fr.suivons.domain.Siren> sirens) {
+                evenements.add("préparation " + sirens.stream().map(fr.suivons.domain.Siren::valeur).toList());
+            }
+        };
+
+        pipeline.executer(source, prepare, mart, PipelineIngestion.Options.PAR_DEFAUT);
+
+        assertThat(evenements).as("SIREN distincts par lots de 2, tous avant le premier lot de flux")
+                .containsExactly("préparation [412565228, 552032534]", "lot", "lot");
+    }
+
     private PipelineIngestion.Resultat lancer() {
         return pipeline.executer(source, rattacheur, mart, PipelineIngestion.Options.PAR_DEFAUT);
     }

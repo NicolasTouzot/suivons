@@ -16,6 +16,10 @@
 
 La source prévue par la spec (DECP consolidées sur data.gouv.fr) n'est **pas joignable depuis l'environnement cloud** (`www.data.gouv.fr` coupe la connexion). Correspondance exacte entre les deux publications non vérifiée (voir « Écarts »).
 
+## Lecture (lot 2)
+
+`ingestion-decp` lit l'export Parquet avec DuckDB (JDBC, en mémoire) : colonnes typées (`datenotification` et `datepublicationdonnees` en `DATE`, `montant` en `DOUBLE`, le reste en texte), tri par (acheteur, identifiant) puis fusion marché par marché. Mesuré le 2026-09-28 sur le jeu complet : 711 685 lignes, 759 385 couples (marché, titulaire), 102 000 SIREN distincts (SIRET à 14 caractères), 22 300 acheteurs.
+
 ## Volumétrie
 
 | Jeu | Lignes | Marchés distincts (`acheteur_id` + `id`) | Années de notification |

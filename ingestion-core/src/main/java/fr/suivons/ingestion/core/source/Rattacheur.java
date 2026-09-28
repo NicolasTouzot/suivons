@@ -3,6 +3,7 @@ package fr.suivons.ingestion.core.source;
 import java.util.List;
 
 import fr.suivons.domain.FluxNormalise;
+import fr.suivons.domain.Siren;
 
 /**
  * Rattachement d'un flux à un SIREN (SPEC.md §6.5), fourni par le module reconciliation. Le rattacheur garantit
@@ -22,5 +23,13 @@ public interface Rattacheur {
      */
     default List<Rattachement> rattacherLot(List<FluxNormalise> lot) {
         return lot.stream().map(this::rattacher).toList();
+    }
+
+    /**
+     * Préparation, avant la transformation : SIREN fournis par la source pour les enregistrements à traiter,
+     * distincts et par lots (une transaction par lot). Permet de les lire en une fois dans les API d'appui plutôt
+     * que lot de flux par lot de flux. Par défaut, rien à préparer.
+     */
+    default void preparer(List<Siren> sirens) {
     }
 }

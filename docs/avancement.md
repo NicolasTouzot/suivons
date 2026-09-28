@@ -41,7 +41,7 @@ Décisions du lot : clients d'API sans Spring Boot côté logique (configuration
 - Vie privée : la dénomination d'une entreprise non diffusible ou d'une personne physique n'est **jamais** écrite dans `core.entreprise`. Une activité codée dans une nomenclature antérieure à la NAF rév. 2 (entreprises anciennes) n'est pas conservée (`naf_code` vide).
 - Règle ArchUnit « seul ingestion-core écrit dans core.flux » : elle juge au niveau de la classe. La lecture des flux (`EntreprisesSansFlux`) est donc séparée de l'écriture des entreprises (`DepotEntreprises`).
 
-## Lot 1 bis — Tranche verticale (en cours)
+## Lot 1 bis — Tranche verticale (terminé)
 
 Plan validé le 2026-09-28, une PR vers `main` par étape :
 
@@ -49,7 +49,7 @@ Plan validé le 2026-09-28, une PR vers `main` par étape :
 |-------|---------|------|
 | 1 | `ingestion-decp` minimale : un mois réel (format 2022), un flux par (marché, titulaire), rattachement par SIRET, `raw.decp_record` (`V7`) | ✅ fait |
 | 2 | `GET /entreprises/{siren}` et `GET /entreprises/{siren}/flux` (contrat d'abord) : identité minimale, total tracé, flux avec lien vers la source | ✅ fait |
-| 3 | Fiche entreprise dans le front, stack `docker-compose` complète, TS Playwright + axe-core | ✅ fait (PR en revue) |
+| 3 | Fiche entreprise dans le front, stack `docker-compose` complète, TS Playwright + axe-core | ✅ fait |
 
 Étape 1 (2026-09-28) :
 - Écriture du référentiel minimal déplacée d'`ingestion-sirene` vers `reconciliation` (`fr.suivons.reconciliation.referentiel` : `ReferentielMinimal`, `DepotEntreprises`, `EntreprisesSansFlux`), décidé le 2026-09-28 : partagée par le rafraîchissement SIRENE et le rattachement des sources.
@@ -70,6 +70,27 @@ Plan validé le 2026-09-28, une PR vers `main` par étape :
 - Stack `docker-compose` (profil `stack`) : images de l'API et du front construites sur des artefacts préparés hors Docker (jar, bundle SSR), pour garder des images simples et un seul outillage de build. Jeu de démonstration `fixtures/demo/parcours.sql` (extrait réel de juin 2026 + entreprise fictive non nommable).
 - CI : job `parcours` (stack complète, jeu de démonstration, TS Playwright + axe-core en bureau et mobile). La stack est jugée prête quand l'API répond à travers le relais du front.
 - Corrigé pendant les TS : les textes réservés aux lecteurs d'écran du tableau élargissaient la page mobile (955 px pour 375) ; test de non-débordement ajouté.
+
+## Lot 2 — Marchés (en cours)
+
+Plan validé le 2026-09-28, une PR vers `main` par étape :
+
+| Étape | Contenu | État |
+|-------|---------|------|
+| 1 | Jeu DECP complet au format 2022 (export Parquet lu avec DuckDB), rattachement préparé en une fois, volumétrie réelle | ✅ fait (PR en revue) |
+| 2 | Format 2019 (historique 2018-2023) : SIRET typés nombre, identifiants parasites, fusion avec le format 2022 | ⏭️ prochaine |
+| 3 | Règles complètes : plateformes, modifications, sous-traitance, lots ; calibrage des seuils aberrants (liste blanche) | à faire |
+| 4 | Payeurs : nom et catégorie via Sirene ; message d'erreur conservé dans `ops.ingestion_run` | à faire |
+| 5 | Flux disparus de la source ; golden files et idempotence sur le jeu complet | à faire |
+
+Décisions du 2026-09-28 : lecture du Parquet par DuckDB (le plus simple dans un premier temps ; export JSON du jeu complet trop lourd) ; un flux absent d'un export **complet et réussi** est supprimé de `core.flux` (jamais après un export partiel ou en échec), avec une trace ; même (marché, titulaire) publié avec plusieurs montants à la même date : montant le plus élevé, sauf lots identifiables (sommés lot par lot).
+
+Étape 1 (2026-09-28) :
+- `ingestion-decp` lit l'export Parquet complet (`/exports/parquet`, 85 Mo) avec DuckDB en mémoire, trié par marché : les lignes d'un marché sont fusionnées ensemble, sans charger le jeu en mémoire. Le paramètre `suivons.decp.mois` (tranche verticale) disparaît. Version de la source : date de modification du jeu (métadonnées du portail).
+- `ingestion-core` : étape `preparation-rattachement` entre le chargement brut et la transformation. Les SIREN distincts des enregistrements à traiter sont passés au rattacheur par lots (`Rattacheur.preparer`), une transaction par lot. `RattacheurSiret` les lit dans Sirene en une fois (environ 200 appels pour 102 000 SIREN, au lieu d'environ 1 500 lot de flux par lot de flux) et retient les SIREN inconnus de l'INSEE pour ne pas les redemander.
+- Fixture : l'extrait JSON relu reste la référence ; `fixtures/decp/generer-parquet.py` en produit la version Parquet, aux types de l'export réel.
+- Limiteur de débit des API d'appui lissé (un appel toutes les 2 s pour Sirene) : une rafale de 30 appels en début de minute provoquait des 429 de l'INSEE.
+- Mesures du premier chargement complet (2026-09-28, environnement cloud, `-Xmx1g`) : 39 min 31 s au total, dont téléchargement 2 min 51, chargement brut 1 min 13 (759 385 enregistrements), préparation du rattachement 5 min 59 (101 848 SIREN), transformation et écriture 29 min 26 (≈ 430 flux/s, à optimiser) ; mémoire résidente maximale 835 Mo ; base de 942 Mo, dont 481 Mo de données brutes. Résultat : 759 385 flux, 99,7 % rattachés, 101 796 entreprises, 22 298 payeurs, 1 975 flux aberrants. API sans mart : synthèse de l'entreprise la plus fournie (7 409 flux) en ≈ 35 ms.
 
 ## Décisions prises
 

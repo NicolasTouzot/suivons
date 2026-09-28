@@ -2,11 +2,7 @@ package fr.suivons.ingestion.decp;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
 import java.util.stream.Stream;
 
 import tools.jackson.core.JacksonException;
@@ -21,8 +17,9 @@ import fr.suivons.ingestion.core.source.SourceFlux;
 import fr.suivons.ingestion.core.source.Transformation;
 
 /**
- * Source DECP, canal `MARCHE` (SPEC.md §4). Extraction : export JSON du jeu `decp-2022-marches-valides` filtré sur
- * un mois de notification ; lecture : fusion des lignes en un enregistrement par couple (marché, titulaire).
+ * Source DECP, canal `MARCHE` (SPEC.md §4). Extraction : export Parquet complet du jeu `decp-2022-marches-valides`
+ * (reporté si le producteur réindexe le jeu) ; lecture : fusion des lignes en un enregistrement par couple
+ * (marché, titulaire), marché par marché.
  */
 public class SourceDecp implements SourceFlux {
 
@@ -51,54 +48,50 @@ public class SourceDecp implements SourceFlux {
 
     @Override
     public FichierSource extraire(ContexteExtraction contexte) throws IOException {
-        verifierIndexationComplete(contexte.repertoireCache());
-        Path fichier = contexte.repertoireCache().resolve("decp-2022-" + reglages.mois() + ".json");
-        return new FichierSource(telechargeur.telecharger(urlExport(), fichier), reglages.mois().toString());
+        String version = verifierIndexationComplete(contexte.repertoireCache());
+        Path fichier = contexte.repertoireCache().resolve("decp-2022.parquet");
+        return new FichierSource(telechargeur.telecharger(URI.create(reglages.jeu() + "/exports/parquet"), fichier),
+                version);
     }
 
     /**
      * Pendant une réindexation chez le producteur, l'API n'expose qu'une partie du jeu : un export serait incomplet.
      * Le nombre d'enregistrements interrogeables doit égaler celui annoncé par les métadonnées du jeu.
+     *
+     * @return date de dernière modification du jeu, version de la source
      */
-    void verifierIndexationComplete(Path repertoireCache) throws IOException {
-        long annonces = lireNombre(URI.create(reglages.jeu()), repertoireCache.resolve("metadonnees.json"),
-                "/metas/default/records_count");
-        long indexes = lireNombre(URI.create(reglages.jeu() + "/records?limit=0"),
-                repertoireCache.resolve("decompte.json"), "/total_count");
+    String verifierIndexationComplete(Path repertoireCache) throws IOException {
+        JsonNode metadonnees = lire(URI.create(reglages.jeu()), repertoireCache.resolve("metadonnees.json"))
+                .at("/metas/default");
+        long annonces = nombre(metadonnees.at("/records_count"), "records_count");
+        long indexes = nombre(lire(URI.create(reglages.jeu() + "/records?limit=0"),
+                repertoireCache.resolve("decompte.json")).at("/total_count"), "total_count");
         if (annonces != indexes) {
             throw new IOException("Jeu DECP en cours de mise à jour chez le producteur : " + indexes
                     + " enregistrements interrogeables sur " + annonces + " annoncés ; export reporté");
         }
+        return metadonnees.at("/modified").isString() ? metadonnees.at("/modified").asString()
+                : String.valueOf(annonces);
     }
 
-    private long lireNombre(URI url, Path fichier, String chemin) throws IOException {
+    private JsonNode lire(URI url, Path fichier) throws IOException {
         try {
-            JsonNode valeur = json.readTree(telechargeur.telecharger(url, fichier).toFile()).at(chemin);
-            if (!valeur.isNumber()) {
-                throw new IOException("Réponse inattendue de " + url + " : " + chemin + " absent");
-            }
-            return valeur.longValue();
+            return json.readTree(telechargeur.telecharger(url, fichier).toFile());
         } catch (JacksonException e) {
             throw new IOException("Réponse illisible de " + url, e);
         }
     }
 
-    /** Export JSON des marchés notifiés pendant le mois configuré. */
-    URI urlExport() {
-        String filtre = "datenotification>=date'" + reglages.mois().atDay(1) + "' and datenotification<date'"
-                + reglages.mois().plusMonths(1).atDay(1) + "'";
-        return URI.create(reglages.jeu() + "/exports/json?where=" + URLEncoder.encode(filtre, StandardCharsets.UTF_8));
+    private static long nombre(JsonNode valeur, String champ) throws IOException {
+        if (!valeur.isNumber()) {
+            throw new IOException("Réponse inattendue du portail DECP : " + champ + " absent");
+        }
+        return valeur.longValue();
     }
 
     @Override
     public Stream<EnregistrementSource> lire(FichierSource fichier) throws IOException {
-        List<LigneDecp> lignes;
-        try {
-            lignes = Arrays.asList(json.readValue(fichier.chemin().toFile(), LigneDecp[].class));
-        } catch (JacksonException e) {
-            throw new IOException("Export DECP illisible : " + fichier.chemin(), e);
-        }
-        return FusionDecp.fusionner(lignes).stream()
+        return LecteurParquet.lire(fichier.chemin())
                 .map(marche -> new EnregistrementSource(marche.sourceRecordId(), json.writeValueAsString(marche)));
     }
 

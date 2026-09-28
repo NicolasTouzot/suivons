@@ -30,6 +30,8 @@ Thumbs.db
 /data/
 *.zip
 *.parquet
+# sauf les échantillons de test, réduits et versionnés
+!fixtures/**/*.parquet
 
 # Cache des fichiers téléchargés par les ingestions (suivons.ingestion.repertoire-cache)
 **/data/cache/

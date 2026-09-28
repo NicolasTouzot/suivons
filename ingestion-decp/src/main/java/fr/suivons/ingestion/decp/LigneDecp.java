@@ -5,33 +5,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 /**
- * Ligne du jeu `decp-2022-marches-valides` (export JSON de data.economie.gouv.fr), limitée aux colonnes utiles.
+ * Ligne du jeu `decp-2022-marches-valides` (export Parquet de data.economie.gouv.fr), limitée aux colonnes utiles.
  * Une ligne est une combinaison marché × co-titulaires × modification × acte de sous-traitance
  * (docs/sources/decp.md).
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record LigneDecp(
-        @JsonProperty("acheteur_id") String acheteurId,
-        @JsonProperty("id") String id,
-        @JsonProperty("objet") String objet,
-        @JsonProperty("techniques") String techniques,
-        @JsonProperty("montant") BigDecimal montant,
-        @JsonProperty("datenotification") String dateNotification,
-        @JsonProperty("datepublicationdonnees") String datePublication,
-        @JsonProperty("source") String plateforme,
-        @JsonProperty("titulaire_id_1") String titulaireId1,
-        @JsonProperty("titulaire_typeidentifiant_1") String titulaireType1,
-        @JsonProperty("titulaire_id_2") String titulaireId2,
-        @JsonProperty("titulaire_typeidentifiant_2") String titulaireType2,
-        @JsonProperty("titulaire_id_3") String titulaireId3,
-        @JsonProperty("titulaire_typeidentifiant_3") String titulaireType3,
-        @JsonProperty("idmodification") String idModification,
-        @JsonProperty("montantmodification") String montantModification,
-        @JsonProperty("datenotificationmodificationmodification") String dateModification) {
+        String acheteurId,
+        String id,
+        String objet,
+        String techniques,
+        BigDecimal montant,
+        String dateNotification,
+        String datePublication,
+        String plateforme,
+        String titulaireId1,
+        String titulaireType1,
+        String titulaireId2,
+        String titulaireType2,
+        String titulaireId3,
+        String titulaireType3,
+        String idModification,
+        String montantModification,
+        String dateModification) {
 
     /** Valeur sentinelle du producteur pour « vide ». */
     static final String VIDE = "CDL";
