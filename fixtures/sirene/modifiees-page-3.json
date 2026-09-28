@@ -1,0 +1,12 @@
+{
+  "header": {
+    "statut": 200,
+    "message": "OK",
+    "total": 4,
+    "debut": 0,
+    "nombre": 0,
+    "curseur": "AoEpMTYwOTk0NTY3",
+    "curseurSuivant": "AoEpMTYwOTk0NTY3"
+  },
+  "unitesLegales": []
+}

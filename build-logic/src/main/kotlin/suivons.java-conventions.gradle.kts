@@ -64,3 +64,8 @@ configurations.named("integrationTestImplementation") {
 configurations.named("integrationTestRuntimeOnly") {
     extendsFrom(configurations.getByName("runtimeOnly"))
 }
+
+// Échantillons de données sources (/fixtures) disponibles sur le classpath des TI
+sourceSets.named("integrationTest") {
+    resources.srcDir(rootDir.resolve("fixtures"))
+}

@@ -9,6 +9,7 @@
 java = "25"
 spring-boot = "4.1.1"
 archunit = "1.5.1"
+resilience4j = "2.4.0"
 wiremock = "3.13.2"
 swagger-request-validator = "3.0.0"
 openapi-generator = "7.25.0"
@@ -32,6 +33,7 @@ spring-boot-starter-jooq = { module = "org.springframework.boot:spring-boot-star
 spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
+spring-boot-test = { module = "org.springframework.boot:spring-boot-test" }
 flyway-core = { module = "org.flywaydb:flyway-core" }
 flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 jooq = { module = "org.jooq:jooq" }
@@ -51,9 +53,16 @@ jakarta-annotation = { module = "jakarta.annotation:jakarta.annotation-api" }
 jakarta-servlet = { module = "jakarta.servlet:jakarta.servlet-api" }
 jackson-annotations = { module = "com.fasterxml.jackson.core:jackson-annotations" }
 snakeyaml = { module = "org.yaml:snakeyaml" }
+# Clients HTTP des API d'appui (referentiel-client)
+spring-boot = { module = "org.springframework.boot:spring-boot" }
+jackson-databind = { module = "tools.jackson.core:jackson-databind" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine" }
 
 # Hors BOM Spring Boot
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+resilience4j-circuitbreaker = { module = "io.github.resilience4j:resilience4j-circuitbreaker", version.ref = "resilience4j" }
+resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", version.ref = "resilience4j" }
+resilience4j-ratelimiter = { module = "io.github.resilience4j:resilience4j-ratelimiter", version.ref = "resilience4j" }
 # Variante autonome (dépendances ombrées) : évite le conflit Jetty avec Spring Boot 4
 wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
 swagger-request-validator = { module = "com.atlassian.oai:swagger-request-validator-core", version.ref = "swagger-request-validator" }

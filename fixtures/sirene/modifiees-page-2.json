@@ -1,0 +1,117 @@
+{
+  "header": {
+    "statut": 200,
+    "message": "OK",
+    "total": 4,
+    "debut": 0,
+    "nombre": 2,
+    "curseur": "AoEpMTMwNjM1MTIx",
+    "curseurSuivant": "AoEpMTYwOTk0NTY3"
+  },
+  "unitesLegales": [
+    {
+      "siren": "552032534",
+      "statutDiffusionUniteLegale": "O",
+      "categorieEntreprise": "GE",
+      "periodesUniteLegale": [
+        {
+          "dateFin": null,
+          "dateDebut": "2025-08-19",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "DANONE",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": "70.10Z",
+          "nomenclatureActivitePrincipaleUniteLegale": "NAFRev2",
+          "nicSiegeUniteLegale": "00703"
+        },
+        {
+          "dateFin": "2025-08-18",
+          "dateDebut": "2019-05-16",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "DANONE",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": "70.10Z",
+          "nomenclatureActivitePrincipaleUniteLegale": "NAFRev2",
+          "nicSiegeUniteLegale": "00646"
+        },
+        {
+          "dateFin": "2019-05-15",
+          "dateDebut": "2009-04-23",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "DANONE",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": "70.10Z",
+          "nomenclatureActivitePrincipaleUniteLegale": "NAFRev2",
+          "nicSiegeUniteLegale": "00646"
+        },
+        {
+          "dateFin": "2009-04-22",
+          "dateDebut": "2008-01-01",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "GROUPE DANONE",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": "70.10Z",
+          "nomenclatureActivitePrincipaleUniteLegale": "NAFRev2",
+          "nicSiegeUniteLegale": "00646"
+        },
+        {
+          "dateFin": "2007-12-31",
+          "dateDebut": "2003-12-25",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "GROUPE DANONE",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": "74.1J",
+          "nomenclatureActivitePrincipaleUniteLegale": "NAFRev1",
+          "nicSiegeUniteLegale": "00646"
+        },
+        {
+          "dateFin": "2003-12-24",
+          "dateDebut": "1994-01-01",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "GROUPE DANONE",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": null,
+          "nomenclatureActivitePrincipaleUniteLegale": null,
+          "nicSiegeUniteLegale": "00646"
+        },
+        {
+          "dateFin": "1993-12-31",
+          "dateDebut": "1990-01-01",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "BSN",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": null,
+          "nomenclatureActivitePrincipaleUniteLegale": null,
+          "nicSiegeUniteLegale": "00646"
+        },
+        {
+          "dateFin": "1989-12-31",
+          "dateDebut": "1955-01-01",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "BOUSSOIS SOUCHON NEUVESEL GE",
+          "categorieJuridiqueUniteLegale": "5599",
+          "activitePrincipaleUniteLegale": null,
+          "nomenclatureActivitePrincipaleUniteLegale": null,
+          "nicSiegeUniteLegale": "00646"
+        }
+      ]
+    },
+    {
+      "siren": "900000019",
+      "statutDiffusionUniteLegale": "P",
+      "categorieEntreprise": null,
+      "periodesUniteLegale": [
+        {
+          "dateFin": null,
+          "dateDebut": "2024-01-12",
+          "etatAdministratifUniteLegale": "A",
+          "denominationUniteLegale": "DENOMINATION FICTIVE",
+          "categorieJuridiqueUniteLegale": "5710",
+          "activitePrincipaleUniteLegale": "70.22Z",
+          "nomenclatureActivitePrincipaleUniteLegale": "NAFRev2",
+          "nicSiegeUniteLegale": "00016"
+        }
+      ]
+    }
+  ]
+}

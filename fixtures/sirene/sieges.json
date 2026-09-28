@@ -1,0 +1,47 @@
+{
+  "header": {
+    "statut": 200,
+    "message": "OK",
+    "total": 4,
+    "debut": 0,
+    "nombre": 4
+  },
+  "etablissements": [
+    {
+      "siren": "900000001",
+      "siret": "90000000100023",
+      "adresseEtablissement": {
+        "codePostalEtablissement": "99000",
+        "libelleCommuneEtablissement": "COMMUNE FICTIVE",
+        "codeCommuneEtablissement": "99001"
+      }
+    },
+    {
+      "siren": "900000019",
+      "siret": "90000001900016",
+      "adresseEtablissement": {
+        "codePostalEtablissement": "[ND]",
+        "libelleCommuneEtablissement": "AUTRE COMMUNE FICTIVE",
+        "codeCommuneEtablissement": "99002"
+      }
+    },
+    {
+      "siren": "412565228",
+      "siret": "41256522800076",
+      "adresseEtablissement": {
+        "codePostalEtablissement": "75012",
+        "libelleCommuneEtablissement": "PARIS",
+        "codeCommuneEtablissement": "75112"
+      }
+    },
+    {
+      "siren": "552032534",
+      "siret": "55203253400703",
+      "adresseEtablissement": {
+        "codePostalEtablissement": "75009",
+        "libelleCommuneEtablissement": "PARIS",
+        "codeCommuneEtablissement": "75109"
+      }
+    }
+  ]
+}
