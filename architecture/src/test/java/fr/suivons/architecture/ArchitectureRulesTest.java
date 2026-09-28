@@ -65,6 +65,11 @@ class ArchitectureRulesTest {
     }
 
     @Test
+    void seulIngestionCoreEcritLesFlux() {
+        ArchitectureRules.SEUL_INGESTION_CORE_ECRIT_LES_FLUX.check(production);
+    }
+
+    @Test
     void apiEcritSeulementLesSignalements() {
         ArchitectureRules.API_ECRIT_SEULEMENT_LES_SIGNALEMENTS.check(production);
     }

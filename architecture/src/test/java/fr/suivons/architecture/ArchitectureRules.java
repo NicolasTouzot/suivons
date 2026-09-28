@@ -1,5 +1,6 @@
 package fr.suivons.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
@@ -10,7 +11,10 @@ import java.util.Set;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.tngtech.archunit.library.dependencies.SliceAssignment;
 import com.tngtech.archunit.library.dependencies.SliceIdentifier;
 
@@ -98,6 +102,28 @@ final class ArchitectureRules {
             .and().resideOutsideOfPackage("fr.suivons.api.signalement..")
             .should().callMethodWhere(ecritureJooq())
             .because("l'api se connecte en lecture seule, sauf sur ops.signalement (SPEC.md §8)");
+
+    /** Seul ingestion-core écrit dans core.flux (CLAUDE.md, SPEC.md §7.2) ; les autres modules peuvent le lire. */
+    static final ArchRule SEUL_INGESTION_CORE_ECRIT_LES_FLUX = classes()
+            .that().resideOutsideOfPackages("fr.suivons.ingestion.core..", "fr.suivons.db.jooq..")
+            .should(new ArchCondition<JavaClass>("ne pas écrire dans core.flux") {
+                @Override
+                public void check(JavaClass classe, ConditionEvents evenements) {
+                    boolean utiliseLesFlux = classe.getDirectDependenciesFromSelf().stream()
+                            .anyMatch(dependance -> TABLE_FLUX.contains(dependance.getTargetClass().getName()));
+                    if (!utiliseLesFlux) {
+                        return;
+                    }
+                    classe.getMethodCallsFromSelf().stream()
+                            .filter(ecritureJooq())
+                            .forEach(appel -> evenements.add(SimpleConditionEvent.violated(appel,
+                                    appel.getDescription() + " : écriture jOOQ dans une classe qui manipule core.flux")));
+                }
+            })
+            .because("seul ingestion-core écrit dans core.flux (provenance et idempotence garanties par le pipeline)");
+
+    private static final Set<String> TABLE_FLUX = Set.of(
+            "fr.suivons.db.jooq.core.tables.Flux", "fr.suivons.db.jooq.core.tables.records.FluxRecord");
 
     private static final Set<String> ECRITURES_DSL =
             Set.of("insertInto", "update", "delete", "deleteFrom", "mergeInto", "truncate", "execute", "batch");

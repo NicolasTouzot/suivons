@@ -165,7 +165,7 @@ Le référentiel entreprises n'est **pas** une copie de SIRENE : seules les entr
 
 ### 6.2 Schéma `raw`
 
-Une table par source de flux (`DECP`, `TAM`, `KOHESIO`) : `raw.<source>_record(run_id, source_record_id, payload jsonb, checksum, recu_le)`. Pas de table `raw` pour les API d'appui (SIRENE, Recherche d'entreprises) : elles restent la référence et ne sont pas archivées.
+Une table par source de flux (`DECP`, `TAM`, `KOHESIO`) : `raw.<source>_record(source_record_id PK, run_id, payload jsonb, checksum, recu_le)`, créée par la migration de la source. Elle garde la **dernière version reçue** de chaque enregistrement et le run qui l'a modifiée : un enregistrement inchangé conserve son run d'origine, et seules les nouveautés sont retransformées (ainsi que les données brutes d'un run qui n'a pas abouti). Pas de table `raw` pour les API d'appui (SIRENE, Recherche d'entreprises) : elles restent la référence et ne sont pas archivées.
 Objectif : pouvoir **rejouer la transformation** sans retélécharger, et prouver ce qu'on a reçu.
 
 ### 6.3 Schéma `core`
@@ -333,9 +333,10 @@ report    → mise à jour ops.ingestion_run (compteurs, statut)
 ```
 
 - Chaque source est un **exécutable indépendant** (jar Spring Boot), lancé par un ordonnanceur externe (cron, CronJob Kubernetes). Pas d'ordonnanceur embarqué.
-- **Idempotence** : rejouer un run sur la même version de source produit exactement le même état.
+- **Idempotence** : rejouer un run sur la même version de source produit exactement le même état. Un fichier identique (checksum) à celui du dernier run **réussi** arrête le run sans rien écrire (run `SUCCES`, 0 chargé). Un flux dont le contenu n'a pas changé n'est jamais réécrit : sa provenance (`run_id`, `extrait_le`) reste celle du run qui l'a créé ou modifié. L'option « tout retraiter » retransforme toutes les données brutes, par exemple après une évolution des règles, sans réécrire les flux inchangés.
 - **Échec partiel** : un run en échec ne rafraîchit pas le mart ; l'état précédent reste servi.
-- Ajouter une source = ajouter un module `ingestion-<source>` qui implémente les points d'extension d'`ingestion-core`, sans modifier les autres modules.
+- Ajouter une source = ajouter un module `ingestion-<source>` qui implémente les points d'extension d'`ingestion-core` (`SourceFlux` : extraire, lire, transformer ; `Rattacheur` fourni par `reconciliation`), sans modifier les autres modules.
+- Un enregistrement **disparu** d'une nouvelle version de la source n'est pas supprimé de `core.flux` à ce stade : règle à décider par source (lot 2 pour DECP).
 
 ### 7.4 Stack
 
