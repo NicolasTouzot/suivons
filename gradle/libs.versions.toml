@@ -12,6 +12,8 @@ archunit = "1.5.1"
 resilience4j = "2.4.0"
 wiremock = "3.13.2"
 swagger-request-validator = "3.0.0"
+# Lecture des fichiers de nomenclature NAF de l'INSEE (.xls et .xlsx)
+poi = "5.5.1"
 openapi-generator = "7.25.0"
 # Image PostgreSQL des TI et du codegen jOOQ ; à garder égale à docker-compose.yml
 postgres-image = "18.6"
@@ -65,5 +67,6 @@ resilience4j-retry = { module = "io.github.resilience4j:resilience4j-retry", ver
 resilience4j-ratelimiter = { module = "io.github.resilience4j:resilience4j-ratelimiter", version.ref = "resilience4j" }
 # Variante autonome (dépendances ombrées) : évite le conflit Jetty avec Spring Boot 4
 wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
+poi-ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
 swagger-request-validator = { module = "com.atlassian.oai:swagger-request-validator-core", version.ref = "swagger-request-validator" }
 

@@ -157,7 +157,7 @@ Le référentiel entreprises n'est **pas** une copie de SIRENE : seules les entr
 
 | Table | Colonnes clés |
 |-------|---------------|
-| `ops.source` | `code` (PK : `SIRENE`, `RECHERCHE_ENTREPRISES`, `DECP`, `TAM`, `KOHESIO`), `libelle`, `producteur`, `licence`, `url_reference`, `frequence` |
+| `ops.source` | `code` (PK : `SIRENE`, `RECHERCHE_ENTREPRISES`, `DECP`, `TAM`, `KOHESIO`, `NAF` pour la nomenclature d'activités), `libelle`, `producteur`, `licence`, `url_reference`, `frequence` |
 | `ops.ingestion_run` | `id`, `source_code`, `version_source` (date ou hash du jeu), `debut`, `fin`, `statut` (`EN_COURS`, `SUCCES`, `ECHEC`), `lus`, `charges`, `rejetes`, `checksum_fichier` |
 | `ops.rejet` | `run_id`, `source_record_id`, `motif`, `payload` (jsonb) |
 | `ops.batch_*` | Tables techniques de Spring Batch (reprise des jobs), DDL officiel préfixé `ops.` (décision du 2026-09-27) |
