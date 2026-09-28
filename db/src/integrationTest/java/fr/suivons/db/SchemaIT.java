@@ -58,9 +58,9 @@ class SchemaIT {
     }
 
     @Test
-    void referenceLesCinqSources() throws SQLException {
+    void referenceLesSources() throws SQLException {
         assertThat(valeurs(proprietaire(), "SELECT code FROM ops.source"))
-                .containsExactlyInAnyOrder("SIRENE", "RECHERCHE_ENTREPRISES", "DECP", "TAM", "KOHESIO");
+                .containsExactlyInAnyOrder("SIRENE", "RECHERCHE_ENTREPRISES", "DECP", "TAM", "KOHESIO", "NAF");
     }
 
     @Test

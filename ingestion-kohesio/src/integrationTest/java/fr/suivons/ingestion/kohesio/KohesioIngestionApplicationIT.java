@@ -29,6 +29,6 @@ class KohesioIngestionApplicationIT {
     void demarreSansServeurWebEtAccedeALaBase() {
         assertThat(contexte.getClass().getSimpleName()).doesNotContain("Web");
         assertThat(contexte.getBean(DSLContext.class).fetchValue("SELECT count(*) FROM ops.source", Long.class))
-                .isEqualTo(5L);
+                .isEqualTo(6L);
     }
 }

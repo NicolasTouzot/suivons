@@ -30,9 +30,18 @@ Plan validé le 2026-09-27, une PR vers `main` par étape :
 | 2 | Commande de migration dédiée (ADR 0005) : `./gradlew :db:migrate`, image Flyway en production (`docs/exploitation.md`) | ✅ fait |
 | 3 | `referentiel-client` : clients Sirene et Recherche d'entreprises, quotas, cache (Caffeine), disjoncteur (Resilience4j), mode dégradé | ✅ fait |
 | 4 | `ingestion-core` : pipeline §7.3 en job Spring Batch, points d'extension, idempotence, règle ArchUnit « seul ingestion-core écrit dans core.flux » | ✅ fait |
-| 5 | `ingestion-sirene` : rafraîchissement de `core.entreprise`, chargement de `core.naf` (fichiers INSEE) | ⏭️ prochaine |
+| 5 | `ingestion-sirene` : rafraîchissement de `core.entreprise`, chargement de `core.naf` (fichiers INSEE) | ✅ fait (PR en revue) |
+
+Suite : **lot 1 bis** (tranche verticale, SPEC §12).
 
 Décisions du lot : clients d'API sans Spring Boot côté logique (configuration Spring à importer explicitement, `ReferentielClientConfiguration`) ; une entité en diffusion partielle garde sa dénomination dans Sirene (personne morale) : le masquage relève du référentiel et de l'affichage ; **tranche verticale** après le lot 1 (lot 1 bis, SPEC §12 : un extrait DECP réel jusqu'à une fiche entreprise dans le front) et **démo dans chaque PR** (décidé le 2026-09-27, pour rendre le travail visible plus tôt) ; `core.flux` et `core.payeur` créés dès le lot 1 (nécessaires à `ingestion-core`) ; tables Spring Batch dans `ops` (préfixe `batch_`) ; NAF chargée depuis les fichiers INSEE, NAF 2025 prévue dans le modèle ; Resilience4j et Caffeine ajoutés.
+
+Étape 5 (2026-09-28) :
+- `./gradlew :ingestion-sirene:bootRun --args='--run'` enchaîne deux runs indépendants (code de sortie 1 si l'un échoue) : chargement de la NAF (source `NAF`, ajoutée à `ops.source` par `V6`) puis rafraîchissement du référentiel (source `SIRENE`).
+- NAF : NAF rév. 2 (`.xls`, 732 sous-classes) et NAF 2025 (`.xlsx`, 747 sous-classes) lues avec Apache POI 5.5.1 ; chaque fichier est contrôlé par son empreinte SHA-256 (`suivons.naf.fichiers`) : un fichier republié par l'INSEE fait échouer le run sans rien modifier, jusqu'à vérification et mise à jour de l'empreinte.
+- Référentiel : job Spring Batch en deux étapes. D'abord le retrait des entreprises sans flux, non rafraîchies depuis `suivons.referentiel-minimal.delai-grace` (1 jour : une entreprise ajoutée par un rattachement dont les flux ne sont pas encore écrits est protégée). Ensuite la relecture de toutes les autres par lots de 1 000 (unités légales et sièges, deux appels Sirene et une transaction par lot). Seules les lignes qui changent sont réécrites ; `rafraichi_le` est la date de la dernière vérification. SIREN inconnu de l'INSEE : conservé tel quel, tracé dans `ops.rejet`. Quota épuisé ou API indisponible : run en échec, lots déjà traités acquis.
+- Vie privée : la dénomination d'une entreprise non diffusible ou d'une personne physique n'est **jamais** écrite dans `core.entreprise`. Une activité codée dans une nomenclature antérieure à la NAF rév. 2 (entreprises anciennes) n'est pas conservée (`naf_code` vide).
+- Règle ArchUnit « seul ingestion-core écrit dans core.flux » : elle juge au niveau de la classe. La lecture des flux (`EntreprisesSansFlux`) est donc séparée de l'écriture des entreprises (`DepotEntreprises`).
 
 ## Décisions prises
 
@@ -79,3 +88,5 @@ Décisions du lot : clients d'API sans Spring Boot côté logique (configuration
 - Compléments du spike en session locale (Recherche d'entreprises, data.gouv.fr, conditions de réutilisation TAM et Kohesio) : `docs/sources/README.md`.
 - **Hébergement de production** : la limite par ASN de l'API Recherche d'entreprises (30 req/s, voire blocage des clouds publics) est un critère de choix (`docs/sources/recherche-entreprises.md`).
 - Quota API Sirene suffisant face aux robots d'indexation (lot 7).
+- NAF 2025 dans Sirene : l'API 3.11 expose déjà un champ d'activité en NAF 2025 (`activitePrincipaleNAF25UniteLegale`, à confirmer) ; à lire au passage du 1er janvier 2027 (le référentiel accepte déjà `NAF2025`).
+- Ajout au référentiel des entreprises rattachées (SPEC §6.5, étape 1) : l'écriture de `core.entreprise` est aujourd'hui dans `ingestion-sirene` ; son emplacement partagé (réconciliation) est à décider au lot 1 bis.

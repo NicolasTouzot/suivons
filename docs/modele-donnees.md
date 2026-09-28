@@ -1,6 +1,6 @@
 # Modèle de données
 
-> État au lot 1, étape 4 (migrations `V1` à `V5`). Référence : `SPEC.md` §6. Les tables `raw.*` (une par source de flux, clé `source_record_id`, dernière version reçue et run qui l'a modifiée) arrivent avec chaque ingestion, `mart.*` avec l'API (lot 3), `ops.signalement` au lot 6.
+> État au lot 1, étape 5 (migrations `V1` à `V6`). Référence : `SPEC.md` §6. Les tables `raw.*` (une par source de flux, clé `source_record_id`, dernière version reçue et run qui l'a modifiée) arrivent avec chaque ingestion, `mart.*` avec l'API (lot 3), `ops.signalement` au lot 6.
 
 ```mermaid
 erDiagram
@@ -13,7 +13,7 @@ erDiagram
     CORE_NAF |o..o{ CORE_ENTREPRISE : "activité (sans contrainte)"
 
     OPS_SOURCE {
-        text code PK "SIRENE, RECHERCHE_ENTREPRISES, DECP, TAM, KOHESIO"
+        text code PK "SIRENE, RECHERCHE_ENTREPRISES, DECP, TAM, KOHESIO, NAF"
         text libelle
         text producteur
         text licence
@@ -90,6 +90,11 @@ erDiagram
 - **Montants** : entiers en euros, jamais négatifs ; `montant_ferme` ≤ `montant_plafond` ; un flux `FERME` a deux bornes égales ; seul un flux `INCONNU` peut n'avoir aucun montant.
 - **Rattachement** : un flux `NON_RESOLU` n'a jamais de SIREN, un flux rattaché en a toujours un ; `SIREN_SOURCE` implique une confiance de 1.
 - **Année** : `annee` = année de `date_flux` ; chaque flux est rangé dans la partition de son année.
+
+## Alimentation du référentiel (`ingestion-sirene`)
+
+- `core.naf` : fichiers de l'INSEE (source `NAF`), contrôlés par empreinte ; une nomenclature est remplacée par le contenu de son fichier.
+- `core.entreprise` : rafraîchie chaque semaine via l'API Sirene (source `SIRENE`). `denomination` est vide si l'entreprise est non diffusible ou personne physique. `naf_code` est vide si l'activité est codée dans une nomenclature antérieure à la NAF rév. 2. `rafraichi_le` est la date de la dernière vérification. Une entreprise sans flux est retirée si elle n'a pas été rafraîchie depuis un jour. Un SIREN inconnu de l'INSEE est conservé et tracé dans `ops.rejet`.
 
 ## Qui peut faire quoi
 
