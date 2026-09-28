@@ -36,5 +36,34 @@ services:
       - -cleanDisabled=true
       - migrate
 
+  # Stack complète (profil `stack`) : API et front SSR, sur des artefacts construits au préalable :
+  #   ./gradlew :api:bootJar && (cd front && npm run build) && docker compose --profile stack up -d --build
+  # Base migrée par `./gradlew :db:migrate` (ou le service migrate) ; jeu de démonstration : fixtures/demo/parcours.sql
+  api:
+    build: ./api
+    profiles: [stack]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-suivons}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-suivons}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-suivons}
+      INSEE_API_KEY: ${INSEE_API_KEY:-}
+    ports:
+      - "${API_PORT:-8080}:8080"
+
+  front:
+    build: ./front
+    profiles: [stack]
+    depends_on:
+      - api
+    environment:
+      API_URL: http://api:8080
+      # Hôtes acceptés par le rendu serveur (protection SSRF d'Angular)
+      NG_ALLOWED_HOSTS: localhost
+    ports:
+      - "${FRONT_PORT:-4000}:4000"
+
 volumes:
   pgdata:

@@ -52,7 +52,7 @@ Figées au lot 0 le 2026-09-26 (dernières versions stables). Source unique côt
 - Code jOOQ : généré par `:db:generateJooq` (PostgreSQL éphémère via Testcontainers + migrations Flyway), **versionné** dans `db/src/main/jooq`, régénéré et commité avec chaque migration. Migrations dans `db/src/main/resources/db/migration`.
 - Contrat : `contract/openapi.yaml` (OpenAPI 3.0.3). `./gradlew build` le valide, génère les interfaces Spring (`fr.suivons.contract.api`, DTO dans `fr.suivons.contract.model`, compilés dans `contract`) et le client Angular (`contract/build/generated/typescript-angular`). Le schéma `Problem` (RFC 9457) est porté par `org.springframework.http.ProblemDetail` côté Spring, jamais par un DTO. Les conventions transverses du contrat sont vérifiées par `ContractConventionsTest`.
 - API : contrôleurs de `fr.suivons.api` préfixés par `/api/v1` (`ApiPathConfig`, égal au serveur du contrat) ; Actuator sur `/actuator` (`health` avec sondes, `info`) ; logs JSON ECS ; erreurs RFC 9457. L'API ne migre jamais le schéma : Flyway n'est sur son classpath qu'en TI.
-- Front : client d'API généré par `npm run generate:api` (Gradle) dans `front/src/app/core/api/generated`, non versionné, branché par `provideApi('/api/v1')` ; rendu serveur à la demande (`RenderMode.Server`) ; design tokens dans `front/src/styles/_tokens.scss` (thèmes clair et sombre, `prefers-reduced-motion`).
+- Front : client d'API généré par `npm run generate:api` (Gradle) dans `front/src/app/core/api/generated`, non versionné, branché par `provideApi('/api/v1')` ; le serveur SSR relaie `/api` vers l'API (`API_URL`) ; rendu serveur à la demande (`RenderMode.Server`) ; montants formatés uniquement par `MontantPipe` ; design tokens dans `front/src/styles/_tokens.scss` (thèmes clair et sombre, `prefers-reduced-motion`).
 - Ingestion : une application `ingestion-<source>` importe `IngestionCoreConfiguration`, fournit un `SourceFlux` (extraire, lire, transformer) et un `Rattacheur`, puis appelle `PipelineIngestion.executer`. Table brute `raw.<source>_record` créée par une migration. Réglages Spring Batch : `spring.batch.jdbc.table-prefix=ops.BATCH_`, `spring.batch.jdbc.initialize-schema=never`, `spring.batch.job.enabled=false`.
 - Image PostgreSQL des TI et du codegen : `postgres-image` du catalogue (propriété système `suivons.postgres.image` dans les TI) ; `docker-compose.yml` doit rester aligné.
 - Suites de tests : `test` (TU, dans `./gradlew build`) et `integrationTest` (TI, `src/integrationTest/java`, hors `build`).
@@ -71,12 +71,15 @@ SPRING_PROFILES_ACTIVE=dev ./gradlew :api:bootRun   # API locale sur la base du 
 cd front && npm ci                      # dépendances front (Node 24, voir front/.nvmrc)
 cd front && npm test                    # TU front (Vitest) ; régénère d'abord le client d'API
 cd front && npm run lint                # ESLint (angular-eslint)
-cd front && npm run e2e                 # TS Playwright + axe-core (serveur SSR ; stack docker-compose à partir du lot 2)
+cd front && npm run e2e                 # TS de fumée Playwright + axe-core (serveur SSR seul)
+./gradlew :api:bootJar && (cd front && npm run build) && docker compose --profile stack up -d --build   # stack complète : API :8080, front :4000
+docker compose exec -T db psql -v ON_ERROR_STOP=1 -U suivons -d suivons < fixtures/demo/parcours.sql   # jeu de démonstration (réinitialise core)
+cd front && npm run e2e:parcours        # TS du parcours sur la stack (recherche → fiche → source)
 ```
 
 ## CI
 
-`.github/workflows/ci.yml`, sur chaque pull request et sur `main` : jobs `back` (build, TU, ArchUnit, TI, code jOOQ à jour), `contrat` (lint Redocly), `front` (lint, TU, TS Playwright + axe-core) et `dependances` (`npm audit`, graphe Gradle, revue des vulnérabilités et des licences incompatibles avec l'AGPL sur les PR). Tous bloquants. Dependabot (`.github/dependabot.yml`) propose les mises à jour chaque semaine.
+`.github/workflows/ci.yml`, sur chaque pull request et sur `main` : jobs `back` (build, TU, ArchUnit, TI, code jOOQ à jour), `contrat` (lint Redocly), `front` (lint, TU, TS de fumée Playwright + axe-core), `parcours` (stack docker-compose avec le jeu de démonstration, TS du parcours) et `dependances` (`npm audit`, graphe Gradle, revue des vulnérabilités et des licences incompatibles avec l'AGPL sur les PR). Tous bloquants. Dependabot (`.github/dependabot.yml`) propose les mises à jour chaque semaine.
 
 Branche par défaut : `main`. Toute évolution passe par une PR vers `main` ; fusion uniquement avec la CI verte.
 

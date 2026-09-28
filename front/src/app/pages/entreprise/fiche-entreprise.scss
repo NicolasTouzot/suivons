@@ -1,0 +1,136 @@
+.retour {
+  margin-top: 0;
+}
+
+.siren {
+  display: block;
+  font-family: var(--font-interface);
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--couleur-texte-secondaire);
+}
+
+.attributs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espace-2) var(--espace-4);
+  margin: 0;
+
+  dt {
+    font-size: 0.875rem;
+    color: var(--couleur-texte-secondaire);
+  }
+
+  dd {
+    margin: 0;
+  }
+}
+
+.montant {
+  margin-block: var(--espace-4);
+  padding: var(--espace-3);
+  background: var(--couleur-surface);
+  border-radius: var(--rayon-1);
+}
+
+.chiffre {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--espace-2);
+  margin: 0;
+  font-family: var(--font-titre);
+  font-size: 2.5rem;
+  font-variant-numeric: var(--font-chiffres);
+}
+
+.legende {
+  font-family: var(--font-interface);
+  font-size: 1rem;
+  color: var(--couleur-texte-secondaire);
+}
+
+.note {
+  color: var(--couleur-texte-secondaire);
+}
+
+.canaux {
+  padding: 0;
+  list-style: none;
+}
+
+.canal {
+  padding-left: var(--espace-2);
+  border-left: 0.375rem solid var(--couleur-canal-marche);
+}
+
+.canal-aide_etat {
+  border-left-color: var(--couleur-canal-aide-etat);
+}
+
+.canal-fonds_ue {
+  border-left-color: var(--couleur-canal-fonds-ue);
+}
+
+.defilement {
+  // Contient aussi les textes réservés aux lecteurs d'écran (position absolue) : pas de débordement de la page
+  position: relative;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+th,
+td {
+  padding: var(--espace-2);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--couleur-surface);
+}
+
+.date {
+  white-space: nowrap;
+}
+
+.nombre {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: var(--font-chiffres);
+}
+
+.nature,
+.badge {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--couleur-texte-secondaire);
+}
+
+.badge {
+  color: var(--couleur-attention);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: var(--espace-3);
+  margin-top: var(--espace-3);
+
+  button {
+    padding: var(--espace-1) var(--espace-3);
+    font: inherit;
+    color: var(--couleur-texte);
+    background: var(--couleur-surface);
+    border: 1px solid var(--couleur-texte-secondaire);
+    border-radius: var(--rayon-1);
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}

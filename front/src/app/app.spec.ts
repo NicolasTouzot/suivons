@@ -14,9 +14,9 @@ describe('App', () => {
     return fixture.nativeElement as HTMLElement;
   }
 
-  it('affiche le titre principal', async () => {
+  it('affiche la marque, qui ramène à l\'accueil', async () => {
     const page = await render();
-    expect(page.querySelector('h1')?.textContent).toContain("argent public");
+    expect(page.querySelector('header a[href="/"]')?.textContent).toContain('Suivre Notre Argent');
   });
 
   it('expose les repères de navigation accessibles', async () => {

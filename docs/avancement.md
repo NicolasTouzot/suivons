@@ -48,8 +48,8 @@ Plan validé le 2026-09-28, une PR vers `main` par étape :
 | Étape | Contenu | État |
 |-------|---------|------|
 | 1 | `ingestion-decp` minimale : un mois réel (format 2022), un flux par (marché, titulaire), rattachement par SIRET, `raw.decp_record` (`V7`) | ✅ fait |
-| 2 | `GET /entreprises/{siren}` et `GET /entreprises/{siren}/flux` (contrat d'abord) : identité minimale, total tracé, flux avec lien vers la source | ✅ fait (PR en revue) |
-| 3 | Fiche entreprise dans le front, stack `docker-compose` complète, TS Playwright + axe-core | ⏭️ prochaine |
+| 2 | `GET /entreprises/{siren}` et `GET /entreprises/{siren}/flux` (contrat d'abord) : identité minimale, total tracé, flux avec lien vers la source | ✅ fait |
+| 3 | Fiche entreprise dans le front, stack `docker-compose` complète, TS Playwright + axe-core | ✅ fait (PR en revue) |
 
 Étape 1 (2026-09-28) :
 - Écriture du référentiel minimal déplacée d'`ingestion-sirene` vers `reconciliation` (`fr.suivons.reconciliation.referentiel` : `ReferentielMinimal`, `DepotEntreprises`, `EntreprisesSansFlux`), décidé le 2026-09-28 : partagée par le rafraîchissement SIRENE et le rattachement des sources.
@@ -63,6 +63,13 @@ Plan validé le 2026-09-28, une PR vers `main` par étape :
 - `nomMasque` (diffusion partielle ou entrepreneur individuel) : la dénomination n'est jamais renvoyée, même si elle était en base.
 - Entreprise absente du référentiel (aucun flux) : 404 « Aucun flux tracé » ; la fiche construite depuis Sirene viendra avec `/identite`. SIREN mal formé ou clé de Luhn invalide : 400. Pagination à partir de 1, `size` ≤ 100.
 - Contraintes du contrat appliquées par `spring-boot-starter-validation` ; leurs violations sont traduites en 400 RFC 9457 (`ErreursApi`). Réponses validées contre `openapi.yaml` en TI (swagger-request-validator), comme prévu dès le lot 0.
+
+Étape 3 (2026-09-28) :
+- Front : accueil avec recherche par SIREN ou SIRET (le nom au lot 3), fiche `/entreprises/:siren` rendue côté serveur (identité, montant attribué en chiffre principal, montant maximal possible, canaux, tableau paginé des flux avec lien vers la source), messages pour une entreprise sans flux tracé et pour une entreprise non nommée. `MontantPipe` (exact ou compact) seul formateur de montants ; libellés neutres (`core/libelles.ts`) ; une couleur par canal dans les tokens.
+- Le serveur SSR relaie `/api` (lecture seule) vers l'API (`API_URL`) : même origine pour le navigateur et le rendu serveur, pas de CORS.
+- Stack `docker-compose` (profil `stack`) : images de l'API et du front construites sur des artefacts préparés hors Docker (jar, bundle SSR), pour garder des images simples et un seul outillage de build. Jeu de démonstration `fixtures/demo/parcours.sql` (extrait réel de juin 2026 + entreprise fictive non nommable).
+- CI : job `parcours` (stack complète, jeu de démonstration, TS Playwright + axe-core en bureau et mobile). La stack est jugée prête quand l'API répond à travers le relais du front.
+- Corrigé pendant les TS : les textes réservés aux lecteurs d'écran du tableau élargissaient la page mobile (955 px pour 375) ; test de non-débordement ajouté.
 
 ## Décisions prises
 

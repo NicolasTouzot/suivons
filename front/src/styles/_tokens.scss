@@ -21,6 +21,12 @@
   --couleur-texte-secondaire: #4a4a4a;
   --couleur-accent: #0b5cad;
   --couleur-focus: #0b5cad;
+  --couleur-erreur: #b3261e;
+  --couleur-attention: #8a4b00;
+  // Une couleur fixe par canal, identique dans tous les graphiques et badges (SPEC.md §9.2)
+  --couleur-canal-marche: #0b5cad;
+  --couleur-canal-aide-etat: #7a3e9d;
+  --couleur-canal-fonds-ue: #1d7a4f;
 
   --duree-transition: 200ms;
 }
@@ -33,6 +39,11 @@
     --couleur-texte-secondaire: #c2c2c2;
     --couleur-accent: #7fb4ea;
     --couleur-focus: #7fb4ea;
+    --couleur-erreur: #ffb4ab;
+    --couleur-attention: #ffcc80;
+    --couleur-canal-marche: #7fb4ea;
+    --couleur-canal-aide-etat: #d0a6f0;
+    --couleur-canal-fonds-ue: #7fd6a8;
   }
 }
 

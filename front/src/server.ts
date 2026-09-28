@@ -13,16 +13,34 @@ const app = express();
 const angularApp = new AngularNodeAppEngine();
 
 /**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
- *
- * Example:
- * ```ts
- * app.get('/api/{*splat}', (req, res) => {
- *   // Handle API request
- * });
- * ```
+ * Relais de l'API (lecture seule) : le navigateur et le rendu serveur appellent `/api/v1` sur l'origine du site,
+ * transmis à l'API Spring (`API_URL`, par défaut celle du profil de développement).
  */
+const apiUrl = process.env['API_URL'] ?? 'http://localhost:8080';
+
+app.use('/api', async (req, res) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    res.status(405).set('Allow', 'GET, HEAD').end();
+    return;
+  }
+  try {
+    const reponse = await fetch(new URL(req.originalUrl, apiUrl), {
+      method: req.method,
+      headers: { accept: req.get('accept') ?? 'application/json' },
+    });
+    res.status(reponse.status);
+    for (const entete of ['content-type', 'retry-after', 'cache-control']) {
+      const valeur = reponse.headers.get(entete);
+      if (valeur) {
+        res.set(entete, valeur);
+      }
+    }
+    res.send(Buffer.from(await reponse.arrayBuffer()));
+  } catch {
+    // API injoignable : erreur RFC 9457, affichée comme une indisponibilité momentanée
+    res.status(502).type('application/problem+json').send({ status: 502, title: 'Bad Gateway', detail: 'API injoignable' });
+  }
+});
 
 /**
  * Serve static files from /browser

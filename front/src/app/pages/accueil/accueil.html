@@ -1,0 +1,22 @@
+<h1>Combien d'argent public une entreprise a-t-elle reçu&nbsp;?</h1>
+<p>Commande publique, aides d'État, fonds européens&nbsp;: chaque montant est relié à sa source officielle.</p>
+
+<form class="recherche" role="search" [formGroup]="formulaire" (ngSubmit)="rechercher()">
+  <label for="recherche-siren">SIREN ou SIRET de l'entreprise</label>
+  <div class="champ">
+    <input
+      id="recherche-siren"
+      type="text"
+      inputmode="numeric"
+      autocomplete="off"
+      placeholder="Ex. 329 338 883"
+      formControlName="saisie"
+      [attr.aria-invalid]="erreur()"
+      [attr.aria-describedby]="erreur() ? 'recherche-erreur' : null"
+    />
+    <button type="submit">Rechercher</button>
+  </div>
+  @if (erreur()) {
+    <p id="recherche-erreur" class="erreur" role="alert">Saisissez un SIREN (9 chiffres) ou un SIRET (14 chiffres).</p>
+  }
+</form>
