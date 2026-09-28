@@ -1,0 +1,121 @@
+<p class="retour"><a routerLink="/">Nouvelle recherche</a></p>
+
+@if (erreur(); as message) {
+  <h1>SIREN {{ siren() }}</h1>
+  <p class="message" role="status">{{ message }}</p>
+} @else if (synthese.value(); as e) {
+  <header class="identite">
+    @if (e.nomMasque) {
+      <h1>Entreprise non nommée <span class="siren">SIREN {{ e.siren }}</span></h1>
+      <p class="note">
+        Son nom n'est pas affiché : l'entreprise est un entrepreneur individuel ou a demandé la diffusion partielle
+        de ses données.
+      </p>
+    } @else {
+      <h1>{{ e.denomination }} <span class="siren">SIREN {{ e.siren }}</span></h1>
+    }
+    <dl class="attributs">
+      @if (e.activite; as activite) {
+        <div>
+          <dt>Activité</dt>
+          <dd>{{ activite.libelle ?? activite.code }}</dd>
+        </div>
+      }
+      @if (e.commune) {
+        <div>
+          <dt>Siège</dt>
+          <dd>{{ e.commune }}@if (e.departement) { ({{ e.departement }})}</dd>
+        </div>
+      }
+      <div>
+        <dt>État</dt>
+        <dd>{{ e.etat === etatActif ? 'Active' : 'Cessée' }}</dd>
+      </div>
+    </dl>
+    <p><a [href]="e.lienAnnuaire">Fiche sur l'Annuaire des entreprises</a></p>
+  </header>
+
+  <section class="montant" aria-labelledby="titre-montant">
+    <h2 id="titre-montant">Argent public tracé</h2>
+    <p class="chiffre">
+      <span [title]="e.montants.montantFerme | montant">{{ e.montants.montantFerme | montant: 'compact' }}</span>
+      <span class="legende">montant attribué</span>
+    </p>
+    <p>
+      Jusqu'à <strong [title]="e.montants.montantPlafond | montant">{{ e.montants.montantPlafond | montant: 'compact' }}</strong>
+      en comptant les montants maximaux possibles (accords-cadres) et les montants partagés entre co-titulaires.
+    </p>
+    <p class="note">
+      {{ e.nombreFlux }} flux
+      @if (e.periode; as periode) {
+        @if (periode.premiereAnnee === periode.derniereAnnee) {
+          en {{ periode.premiereAnnee }}
+        } @else {
+          de {{ periode.premiereAnnee }} à {{ periode.derniereAnnee }}
+        }
+      }
+      @if (e.nombreFluxAberrants > 0) {
+        · {{ e.nombreFluxAberrants }} flux au montant hors des bornes plausibles, affiché{{ e.nombreFluxAberrants > 1 ? 's' : '' }}
+        mais exclu{{ e.nombreFluxAberrants > 1 ? 's' : '' }} des totaux
+      }
+      · données extraites le {{ e.derniereMiseAJour.substring(0, 10) }}
+    </p>
+    <ul class="canaux">
+      @for (c of e.canaux; track c.canal) {
+        <li [class]="'canal canal-' + c.canal.toLowerCase()">
+          {{ libellesCanal[c.canal] }} : {{ c.montants.montantFerme | montant }} attribués ({{ c.nombreFlux }} flux)
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section aria-labelledby="titre-flux">
+    <h2 id="titre-flux">Détail des flux</h2>
+    @if (flux.value(); as page) {
+      <div class="defilement" tabindex="0" role="region" aria-labelledby="titre-flux">
+        <table>
+          <caption class="sr-only">Flux reçus par l'entreprise, du plus récent au plus ancien, page {{ page.page }} sur {{ pages() }}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Canal</th>
+              <th scope="col">Payeur</th>
+              <th scope="col">Objet</th>
+              <th scope="col" class="nombre">Montant attribué</th>
+              <th scope="col" class="nombre">Montant maximal</th>
+              <th scope="col">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of page.elements; track f.identifiant) {
+              <tr [class.aberrant]="f.qualite === aberrant">
+                <td class="date">{{ f.date }}</td>
+                <td>{{ libellesCanal[f.canal] }}</td>
+                <td>{{ f.payeur?.nom ?? f.payeur?.identifiant ?? '—' }}</td>
+                <td>
+                  {{ f.objet ?? '—' }}
+                  <span class="nature">{{ libellesNature[f.nature] }}</span>
+                  @if (f.qualite === aberrant) {
+                    <span class="badge">Montant hors des bornes plausibles, exclu des totaux</span>
+                  }
+                </td>
+                <td class="nombre">{{ f.montantFerme | montant }}</td>
+                <td class="nombre">{{ f.montantPlafond | montant }}</td>
+                <td><a [href]="f.source.url" target="_blank" rel="noopener">{{ f.source.code }}<span class="sr-only"> (ouvre la source dans un nouvel onglet)</span></a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (pages() > 1) {
+        <nav class="pagination" aria-label="Pages du détail des flux">
+          <button type="button" (click)="allerA(page.page - 1)" [disabled]="page.page <= 1">Précédente</button>
+          <span>Page {{ page.page }} sur {{ pages() }}</span>
+          <button type="button" (click)="allerA(page.page + 1)" [disabled]="page.page >= pages()">Suivante</button>
+        </nav>
+      }
+    }
+  </section>
+} @else {
+  <p role="status">Chargement…</p>
+}

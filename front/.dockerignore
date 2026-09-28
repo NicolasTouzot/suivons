@@ -1,0 +1,7 @@
+node_modules
+.angular
+test-results
+playwright-report
+src
+e2e
+e2e-parcours

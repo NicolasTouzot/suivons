@@ -17,6 +17,11 @@
   margin: 0;
   font-family: var(--font-titre);
   font-weight: 700;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 .contenu {

@@ -104,6 +104,58 @@ jobs:
           path: front/playwright-report/
           retention-days: 7
 
+  parcours:
+    name: Parcours (stack docker-compose, TS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: front/.nvmrc
+          cache: npm
+          cache-dependency-path: front/package-lock.json
+      - name: Artefacts de la stack (jar de l'API, bundle SSR du front)
+        run: |
+          ./gradlew :api:bootJar
+          cd front && npm ci && npm run build
+      - name: Base migrée et jeu de démonstration
+        run: |
+          docker compose up -d --wait db
+          ./gradlew :db:migrate
+          docker compose exec -T db psql -v ON_ERROR_STOP=1 -U suivons -d suivons < fixtures/demo/parcours.sql
+      - name: Stack complète (API et front SSR)
+        run: |
+          docker compose --profile stack up -d --build
+          # Prête quand l'API répond à travers le relais du front
+          for i in $(seq 1 90); do
+            if curl -sf http://localhost:4000/api/v1/entreprises/329338883 > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          docker compose --profile stack logs
+          exit 1
+      - name: Navigateur Playwright
+        working-directory: front
+        run: npx playwright install --with-deps chromium
+      - name: TS du parcours (Playwright + axe-core)
+        working-directory: front
+        run: npm run e2e:parcours
+      - name: Journaux de la stack
+        if: failure()
+        run: docker compose --profile stack logs
+      - name: Rapport Playwright
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-parcours
+          path: front/playwright-report-parcours/
+          retention-days: 7
+
   dependances:
     name: Dépendances (vulnérabilités, licences)
     runs-on: ubuntu-latest
