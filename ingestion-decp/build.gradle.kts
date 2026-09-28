@@ -8,6 +8,7 @@ dependencies {
     implementation(project(":reconciliation"))
     implementation(libs.jackson.databind)
     implementation(libs.jackson.annotations)
+    runtimeOnly(libs.duckdb.jdbc)
 
     integrationTestImplementation(libs.wiremock)
 }

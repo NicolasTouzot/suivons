@@ -43,7 +43,8 @@ import fr.suivons.ingestion.core.source.RafraichissementMart;
 
 /**
  * Ingestion DECP de bout en bout sur un extrait réel de juin 2026 (/fixtures/decp, identifiants des titulaires
- * remplacés), export et API Sirene simulés par WireMock : fusion, bornes, rattachement par SIRET, idempotence.
+ * remplacés, au format Parquet de l'export réel), export et API Sirene simulés par WireMock : fusion, bornes,
+ * rattachement par SIRET (SIREN lus dans Sirene en une fois), idempotence.
  */
 @SpringBootTest
 @Testcontainers
@@ -64,7 +65,6 @@ class DecpIngestionIT {
     static void reglages(DynamicPropertyRegistry registre) {
         registre.add("suivons.ingestion.repertoire-cache", cache::toString);
         registre.add("suivons.decp.jeu", () -> api.baseUrl() + "/decp");
-        registre.add("suivons.decp.mois", () -> "2026-06");
         registre.add("suivons.referentiel.sirene.url", () -> api.baseUrl() + "/sirene");
         registre.add("suivons.referentiel.sirene.cle-api", () -> "");
         registre.add("suivons.referentiel.sirene.requetes-par-minute", () -> "6000");
@@ -91,10 +91,11 @@ class DecpIngestionIT {
         api.resetAll();
         // Jeu entièrement indexé chez le producteur
         api.stubFor(get(urlPathEqualTo("/decp"))
-                .willReturn(okJson("{\"metas\": {\"default\": {\"records_count\": 708152}}}")));
+                .willReturn(okJson("{\"metas\": {\"default\": {\"records_count\": 708152, "
+                        + "\"modified\": \"2026-09-22T14:40:23+00:00\"}}}")));
         api.stubFor(get(urlPathEqualTo("/decp/records")).willReturn(okJson("{\"total_count\": 708152}")));
-        api.stubFor(get(urlPathEqualTo("/decp/exports/json"))
-                .willReturn(aResponse().withBody(fixture("decp/decp-2022-juin-2026-extrait.json"))));
+        api.stubFor(get(urlPathEqualTo("/decp/exports/parquet"))
+                .willReturn(aResponse().withBody(octets("decp/decp-2022-juin-2026-extrait.parquet"))));
         api.stubFor(post("/sirene/siren").willReturn(okJson(fixture("sirene/unites-legales.json"))));
         api.stubFor(post("/sirene/siret").willReturn(okJson(fixture("sirene/sieges.json"))));
     }
@@ -111,7 +112,7 @@ class DecpIngestionIT {
                 .as("entreprises ajoutées au référentiel ; aucune dénomination pour l'EI ni la diffusion partielle")
                 .containsExactly("412565228;SALOME INFORMATIQUE", "552032534;DANONE", "900000001;", "900000019;");
         assertThat(dsl.fetchCount(PAYEUR)).isEqualTo(11);
-        api.verify(1, getRequestedFor(urlPathEqualTo("/decp/exports/json")));
+        api.verify(1, getRequestedFor(urlPathEqualTo("/decp/exports/parquet")));
         api.verify(1, postRequestedFor(urlPathEqualTo("/sirene/siren")));
     }
 
@@ -155,7 +156,7 @@ class DecpIngestionIT {
 
         assertThat(resultat.statut()).isEqualTo(SuiviRuns.Statut.ECHEC);
         assertThat(dsl.fetchCount(FLUX)).isZero();
-        api.verify(0, getRequestedFor(urlPathEqualTo("/decp/exports/json")));
+        api.verify(0, getRequestedFor(urlPathEqualTo("/decp/exports/parquet")));
     }
 
     private PipelineIngestion.Resultat lancer() {
@@ -174,11 +175,15 @@ class DecpIngestionIT {
     }
 
     private static String fixture(String chemin) {
+        return new String(octets(chemin), StandardCharsets.UTF_8);
+    }
+
+    private static byte[] octets(String chemin) {
         try (InputStream flux = DecpIngestionIT.class.getResourceAsStream("/" + chemin)) {
             if (flux == null) {
                 throw new IllegalArgumentException("Fixture introuvable : " + chemin);
             }
-            return new String(flux.readAllBytes(), StandardCharsets.UTF_8);
+            return flux.readAllBytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

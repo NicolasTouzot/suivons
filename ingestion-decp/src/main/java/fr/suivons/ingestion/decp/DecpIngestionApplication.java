@@ -3,7 +3,7 @@ package fr.suivons.ingestion.decp;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-/** Ingestion DECP : `--run` charge le mois configuré (`suivons.decp.mois`), puis l'application s'arrête. */
+/** Ingestion DECP : `--run` charge le jeu complet (format 2022), puis l'application s'arrête. */
 @SpringBootApplication
 public class DecpIngestionApplication {
 

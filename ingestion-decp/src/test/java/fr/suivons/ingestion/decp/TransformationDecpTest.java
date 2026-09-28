@@ -2,7 +2,6 @@ package fr.suivons.ingestion.decp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.YearMonth;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -16,7 +15,7 @@ import fr.suivons.ingestion.core.source.Transformation;
 class TransformationDecpTest {
 
     private final TransformationDecp transformation = new TransformationDecp(new DecpProperties(
-            "https://decp.test/jeu", "https://decp.test/page/", YearMonth.of(2026, 6), 1_000_000_000L));
+            "https://decp.test/jeu", "https://decp.test/page/", 1_000_000_000L));
 
     @Test
     void marcheOrdinaireAMontantFermeArrondiALEuro() {
