@@ -47,15 +47,22 @@ Plan validé le 2026-09-28, une PR vers `main` par étape :
 
 | Étape | Contenu | État |
 |-------|---------|------|
-| 1 | `ingestion-decp` minimale : un mois réel (format 2022), un flux par (marché, titulaire), rattachement par SIRET, `raw.decp_record` (`V7`) | ✅ fait (PR en revue) |
-| 2 | `GET /entreprises/{siren}` (contrat d'abord) : identité minimale, total tracé, flux avec lien vers la source | ⏭️ prochaine |
-| 3 | Fiche entreprise dans le front, stack `docker-compose` complète, TS Playwright + axe-core | à faire |
+| 1 | `ingestion-decp` minimale : un mois réel (format 2022), un flux par (marché, titulaire), rattachement par SIRET, `raw.decp_record` (`V7`) | ✅ fait |
+| 2 | `GET /entreprises/{siren}` et `GET /entreprises/{siren}/flux` (contrat d'abord) : identité minimale, total tracé, flux avec lien vers la source | ✅ fait (PR en revue) |
+| 3 | Fiche entreprise dans le front, stack `docker-compose` complète, TS Playwright + axe-core | ⏭️ prochaine |
 
 Étape 1 (2026-09-28) :
 - Écriture du référentiel minimal déplacée d'`ingestion-sirene` vers `reconciliation` (`fr.suivons.reconciliation.referentiel` : `ReferentielMinimal`, `DepotEntreprises`, `EntreprisesSansFlux`), décidé le 2026-09-28 : partagée par le rafraîchissement SIRENE et le rattachement des sources.
 - `Rattacheur.rattacherLot` : le pipeline rattache chaque lot (chunk) en une fois, pour grouper les appels Sirene (1 000 SIREN par requête). Une erreur de l'API fait échouer le run (jamais un `NON_RESOLU` par défaut) ; ses données brutes sont retraitées au run suivant.
 - DECP : export JSON filtré sur un mois (`suivons.decp.mois`, variable `SUIVONS_DECP_MOIS`), garde-fou contre les réindexations du producteur. Règles minimales de fusion (`FusionDecp`) et de bornes (`TransformationDecp`) : dernière publication, montant de la dernière modification sinon montant le plus élevé, groupement → `PARTAGE`, accord-cadre → `PLAFOND`, `ABERRANT` si ≤ 1 € ou > 1 Md€. Payeur = SIRET de l'acheteur, type `AUTRE` (nom et catégorie via Sirene plus tard). Lien vers la source : page du jeu filtrée sur le marché.
 - `Siren.lire` accepte les SIRET de La Poste (SIREN 356000000), dont la clé n'est pas celle de Luhn (somme des chiffres multiple de 5).
+
+Étape 2 (2026-09-28) :
+- Deux endpoints, conformément au SPEC §8 : synthèse (`/entreprises/{siren}` : identité minimale, bornes, nombre de flux et de flux aberrants, période, répartition par canal, lien vers l'Annuaire des entreprises) et détail (`/entreprises/{siren}/flux`, paginé, du plus récent au plus ancien, avec la source de chaque flux).
+- Lecture directe de `core` en attendant le mart (lot 3). Les flux `ABERRANT` sont comptés à part et exclus des montants ; ils restent visibles dans le détail. Borne absente = 0 dans les sommes.
+- `nomMasque` (diffusion partielle ou entrepreneur individuel) : la dénomination n'est jamais renvoyée, même si elle était en base.
+- Entreprise absente du référentiel (aucun flux) : 404 « Aucun flux tracé » ; la fiche construite depuis Sirene viendra avec `/identite`. SIREN mal formé ou clé de Luhn invalide : 400. Pagination à partir de 1, `size` ≤ 100.
+- Contraintes du contrat appliquées par `spring-boot-starter-validation` ; leurs violations sont traduites en 400 RFC 9457 (`ErreursApi`). Réponses validées contre `openapi.yaml` en TI (swagger-request-validator), comme prévu dès le lot 0.
 
 ## Décisions prises
 

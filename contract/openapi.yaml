@@ -16,10 +16,299 @@ info:
     url: https://www.gnu.org/licenses/agpl-3.0.html
 servers:
   - url: /api/v1
-tags: []
-paths: {}
+tags:
+  - name: entreprises
+    description: Argent public reçu par une entreprise (F2, F3).
+paths:
+  /entreprises/{siren}:
+    get:
+      tags: [entreprises]
+      operationId: getEntreprise
+      summary: Synthèse de l'argent public reçu par une entreprise
+      description: |
+        Identité minimale (référentiel local), montant tracé (bornes ferme et plafond), période et répartition
+        par canal. Données locales uniquement. Les flux de qualité `ABERRANT` sont comptés à part et n'entrent
+        dans aucun montant. Une entreprise sans aucun flux tracé n'est pas dans le référentiel local : 404.
+      parameters:
+        - $ref: '#/components/parameters/Siren'
+      responses:
+        '200':
+          description: Synthèse de l'entreprise.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntrepriseSynthese'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /entreprises/{siren}/flux:
+    get:
+      tags: [entreprises]
+      operationId: getFluxEntreprise
+      summary: Flux reçus par une entreprise, chacun relié à sa source
+      description: |
+        Détail des flux (F3), du plus récent au plus ancien, y compris les flux de qualité `ABERRANT`
+        (visibles, mais exclus des montants de la synthèse).
+      parameters:
+        - $ref: '#/components/parameters/Siren'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Page de flux.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageFlux'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
+  parameters:
+    Siren:
+      name: siren
+      in: path
+      required: true
+      description: SIREN de l'entreprise (9 chiffres, clé de Luhn contrôlée).
+      schema:
+        type: string
+        pattern: '^[0-9]{9}$'
+      example: '552032534'
+    Page:
+      name: page
+      in: query
+      description: Numéro de page, à partir de 1.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        default: 1
+    Size:
+      name: size
+      in: query
+      description: Nombre d'éléments par page (100 au plus).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 20
   schemas:
+    Canal:
+      type: string
+      description: Canal par lequel l'argent public est versé ou engagé.
+      enum: [MARCHE, AIDE_ETAT, FONDS_UE]
+    NatureMontant:
+      type: string
+      description: |
+        `FERME` : montant certain ; `PLAFOND` : maximum (accord-cadre, tranche) ; `PARTAGE` : montant d'un
+        groupement ou d'un projet, non ventilé entre ses bénéficiaires ; `INCONNU` : montant non publié.
+      enum: [FERME, PLAFOND, PARTAGE, INCONNU]
+    QualiteMontant:
+      type: string
+      description: '`ABERRANT` : montant hors des bornes plausibles, affiché mais exclu de tout montant agrégé.'
+      enum: [OK, ABERRANT]
+    EtatEntreprise:
+      type: string
+      enum: [ACTIVE, CESSEE]
+    Montants:
+      type: object
+      description: Bornes d'un montant en euros ; la borne ferme est le chiffre principal.
+      required: [montantFerme, montantPlafond]
+      properties:
+        montantFerme:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Borne basse, en euros.
+        montantPlafond:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Borne haute, en euros.
+    Activite:
+      type: object
+      required: [code, nomenclature]
+      properties:
+        code:
+          type: string
+          example: 70.10Z
+        nomenclature:
+          type: string
+          example: NAFRev2
+        libelle:
+          type: string
+          nullable: true
+          example: Activités des sièges sociaux
+    Periode:
+      type: object
+      required: [premiereAnnee, derniereAnnee]
+      properties:
+        premiereAnnee:
+          type: integer
+          format: int32
+        derniereAnnee:
+          type: integer
+          format: int32
+    RepartitionCanal:
+      type: object
+      required: [canal, nombreFlux, montants]
+      properties:
+        canal:
+          $ref: '#/components/schemas/Canal'
+        nombreFlux:
+          type: integer
+          format: int32
+        montants:
+          $ref: '#/components/schemas/Montants'
+    EntrepriseSynthese:
+      type: object
+      required: [siren, nomMasque, etat, montants, nombreFlux, nombreFluxAberrants, canaux, lienAnnuaire,
+        derniereMiseAJour]
+      properties:
+        siren:
+          type: string
+          example: '552032534'
+        denomination:
+          type: string
+          nullable: true
+          description: Absente si `nomMasque` (entreprise non diffusible ou entrepreneur individuel).
+          example: DANONE
+        nomMasque:
+          type: boolean
+          description: |
+            Vrai si l'entreprise est en diffusion partielle ou est un entrepreneur individuel : aucune donnée
+            nominative n'est exposée.
+        activite:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Activite'
+          nullable: true
+        commune:
+          type: string
+          nullable: true
+          description: Commune du siège.
+          example: PARIS
+        departement:
+          type: string
+          nullable: true
+          example: '75'
+        etat:
+          $ref: '#/components/schemas/EtatEntreprise'
+        montants:
+          $ref: '#/components/schemas/Montants'
+        nombreFlux:
+          type: integer
+          format: int32
+          description: Flux comptés dans les montants (hors `ABERRANT`).
+        nombreFluxAberrants:
+          type: integer
+          format: int32
+          description: Flux de qualité `ABERRANT`, visibles dans le détail mais exclus des montants.
+        periode:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Periode'
+          nullable: true
+        canaux:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepartitionCanal'
+        lienAnnuaire:
+          type: string
+          format: uri
+          description: Fiche de l'entreprise sur l'Annuaire des entreprises.
+        derniereMiseAJour:
+          type: string
+          format: date-time
+          description: Date d'extraction la plus récente des flux de l'entreprise.
+    Payeur:
+      type: object
+      required: [identifiant]
+      properties:
+        identifiant:
+          type: string
+          description: SIRET ou SIREN de l'organisme payeur, ou identifiant propre à la source.
+          example: '21280201100016'
+        nom:
+          type: string
+          nullable: true
+    Source:
+      type: object
+      description: Provenance du flux.
+      required: [code, libelle, url, extraitLe]
+      properties:
+        code:
+          type: string
+          example: DECP
+        libelle:
+          type: string
+          example: Données essentielles de la commande publique
+        url:
+          type: string
+          format: uri
+          description: Lien vers l'enregistrement ou le jeu de données d'origine.
+        extraitLe:
+          type: string
+          format: date-time
+    Flux:
+      type: object
+      required: [identifiant, canal, date, nature, qualite, source]
+      properties:
+        identifiant:
+          type: string
+          description: Identifiant de l'enregistrement dans la source.
+        canal:
+          $ref: '#/components/schemas/Canal'
+        date:
+          type: string
+          format: date
+        payeur:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/Payeur'
+          nullable: true
+        objet:
+          type: string
+          nullable: true
+        montantFerme:
+          type: integer
+          format: int64
+          nullable: true
+          description: Borne basse, en euros ; absente pour un plafond ou un montant partagé.
+        montantPlafond:
+          type: integer
+          format: int64
+          nullable: true
+          description: Borne haute, en euros.
+        nature:
+          $ref: '#/components/schemas/NatureMontant'
+        qualite:
+          $ref: '#/components/schemas/QualiteMontant'
+        source:
+          $ref: '#/components/schemas/Source'
+    PageFlux:
+      type: object
+      required: [elements, page, size, total, derniereMiseAJour]
+      properties:
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Flux'
+        page:
+          type: integer
+          format: int32
+        size:
+          type: integer
+          format: int32
+        total:
+          type: integer
+          format: int64
+        derniereMiseAJour:
+          type: string
+          format: date-time
     Problem:
       type: object
       description: Détail d'une erreur, au format RFC 9457 (Problem Details for HTTP APIs).

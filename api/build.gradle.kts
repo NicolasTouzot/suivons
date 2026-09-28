@@ -11,9 +11,12 @@ dependencies {
 
     implementation(libs.spring.boot.starter.webmvc)
     implementation(libs.spring.boot.starter.actuator)
+    // Contraintes du contrat (paramètres) appliquées par la validation de méthode de Spring MVC
+    implementation(libs.spring.boot.starter.validation)
     implementation(libs.spring.boot.starter.jooq)
     runtimeOnly(libs.postgresql)
 
     // TI sur PostgreSQL (Testcontainers, Flyway en TI seulement) : fournis par le plugin suivons.spring-boot-app
     integrationTestImplementation(libs.snakeyaml)
+    integrationTestImplementation(libs.swagger.request.validator)
 }
