@@ -30,3 +30,6 @@ Thumbs.db
 /data/
 *.zip
 *.parquet
+
+# Cache des fichiers téléchargés par les ingestions (suivons.ingestion.repertoire-cache)
+**/data/cache/
