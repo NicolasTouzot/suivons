@@ -303,8 +303,8 @@ Seuls les flux `qualite = OK` et `rattachement IN (SIREN_SOURCE, RESOLU_AUTO)` e
 | `domain` | Lib | Types métier partagés (canal, bornes, règles de calcul pures), sans dépendance Spring ni SQL | — |
 | `ingestion-core` | Lib | Téléchargement avec checksum et cache, écriture `raw`, suivi `ops.ingestion_run`, gestion des rejets, provenance, upsert `core.flux`, rafraîchissement du mart | `db`, `domain` |
 | `referentiel-client` | Lib | Clients HTTP de l'API Sirene et de l'API Recherche d'entreprises : quotas, cache, disjoncteur, mode dégradé | `domain` |
-| `reconciliation` | Lib | Normalisation des identifiants et des noms, rattachement SIREN, score de confiance | `db`, `domain`, `referentiel-client` |
-| `ingestion-sirene` | App Spring Batch | Rafraîchissement du référentiel minimal via l'API Sirene (statut de diffusion, état, dénomination) ; chargement de `core.naf` | `ingestion-core`, `referentiel-client` |
+| `reconciliation` | Lib | Normalisation des identifiants et des noms, rattachement SIREN, score de confiance ; écriture du référentiel minimal (`core.entreprise`), partagée par les ingestions | `db`, `domain`, `referentiel-client` |
+| `ingestion-sirene` | App Spring Batch | Rafraîchissement du référentiel minimal via l'API Sirene (statut de diffusion, état, dénomination) ; chargement de `core.naf` | `ingestion-core`, `referentiel-client`, `reconciliation` |
 | `ingestion-decp` | App Spring Batch | Canal `MARCHE` | `ingestion-core`, `reconciliation` |
 | `ingestion-tam` | App Spring Batch | Canal `AIDE_ETAT` | `ingestion-core`, `reconciliation` |
 | `ingestion-kohesio` | App Spring Batch | Canal `FONDS_UE` | `ingestion-core`, `reconciliation` |

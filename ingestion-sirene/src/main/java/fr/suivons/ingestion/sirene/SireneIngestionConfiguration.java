@@ -18,8 +18,9 @@ import fr.suivons.ingestion.core.pipeline.Telechargeur;
 import fr.suivons.ingestion.sirene.naf.ChargementNaf;
 import fr.suivons.ingestion.sirene.naf.DepotNaf;
 import fr.suivons.ingestion.sirene.naf.NafProperties;
-import fr.suivons.ingestion.sirene.referentiel.DepotEntreprises;
-import fr.suivons.ingestion.sirene.referentiel.EntreprisesSansFlux;
+import fr.suivons.reconciliation.referentiel.DepotEntreprises;
+import fr.suivons.reconciliation.referentiel.EntreprisesSansFlux;
+import fr.suivons.reconciliation.referentiel.ReferentielMinimal;
 import fr.suivons.ingestion.sirene.referentiel.RafraichissementReferentiel;
 import fr.suivons.ingestion.sirene.referentiel.ReferentielMinimalProperties;
 import fr.suivons.referentiel.ReferentielClientConfiguration;
@@ -41,7 +42,9 @@ class SireneIngestionConfiguration {
     RafraichissementReferentiel rafraichissementReferentiel(JobRepository jobRepository, JobOperator jobOperator,
             PlatformTransactionManager transactions, SuiviRuns runs, DSLContext dsl, SireneClient sirene,
             ReferentielMinimalProperties reglages) {
+        DepotEntreprises entreprises = new DepotEntreprises(dsl);
         return new RafraichissementReferentiel(jobRepository, jobOperator, transactions, runs,
-                new DepotEntreprises(dsl), new EntreprisesSansFlux(dsl), new DepotRejets(dsl), sirene, reglages);
+                entreprises, new EntreprisesSansFlux(dsl), new DepotRejets(dsl),
+                new ReferentielMinimal(sirene, entreprises), reglages);
     }
 }

@@ -4,10 +4,8 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -32,9 +30,10 @@ import fr.suivons.ingestion.core.pipeline.DepotRejets;
 import fr.suivons.ingestion.core.pipeline.IngestionException;
 import fr.suivons.ingestion.core.pipeline.PipelineIngestion.Resultat;
 import fr.suivons.ingestion.core.pipeline.SuiviRuns;
-import fr.suivons.referentiel.sirene.Siege;
-import fr.suivons.referentiel.sirene.SireneClient;
-import fr.suivons.referentiel.sirene.UniteLegale;
+import fr.suivons.reconciliation.referentiel.DepotEntreprises;
+import fr.suivons.reconciliation.referentiel.EntrepriseReferentiel;
+import fr.suivons.reconciliation.referentiel.EntreprisesSansFlux;
+import fr.suivons.reconciliation.referentiel.ReferentielMinimal;
 
 /**
  * Rafraîchissement hebdomadaire du référentiel minimal via l'API Sirene (source `SIRENE`, SPEC.md §6.3), sous forme
@@ -55,12 +54,12 @@ public class RafraichissementReferentiel {
     private final DepotEntreprises entreprises;
     private final EntreprisesSansFlux sansFlux;
     private final DepotRejets rejets;
-    private final SireneClient sirene;
+    private final ReferentielMinimal referentiel;
     private final ReferentielMinimalProperties reglages;
 
     public RafraichissementReferentiel(JobRepository jobRepository, JobOperator jobOperator,
             PlatformTransactionManager transactions, SuiviRuns runs, DepotEntreprises entreprises,
-            EntreprisesSansFlux sansFlux, DepotRejets rejets, SireneClient sirene,
+            EntreprisesSansFlux sansFlux, DepotRejets rejets, ReferentielMinimal referentiel,
             ReferentielMinimalProperties reglages) {
         this.jobRepository = jobRepository;
         this.jobOperator = jobOperator;
@@ -69,7 +68,7 @@ public class RafraichissementReferentiel {
         this.entreprises = entreprises;
         this.sansFlux = sansFlux;
         this.rejets = rejets;
-        this.sirene = sirene;
+        this.referentiel = referentiel;
         this.reglages = reglages;
     }
 
@@ -126,19 +125,10 @@ public class RafraichissementReferentiel {
     private void rafraichir(Etat etat, Chunk<? extends Siren> lot) {
         List<Siren> sirens = new ArrayList<>(lot.getItems());
         etat.lus.addAndGet(sirens.size());
-        // Seules les unités demandées sont retenues, quoi que renvoie l'API
-        List<UniteLegale> unites = sirene.unitesLegales(sirens).stream()
-                .filter(u -> sirens.contains(u.siren()))
-                .toList();
-        Map<Siren, Siege> sieges = unites.isEmpty() ? Map.of()
-                : sirene.sieges(unites.stream().map(UniteLegale::siren).toList()).stream()
-                        .collect(Collectors.toMap(Siege::siren, Function.identity(), (a, b) -> a));
-        List<EntrepriseReferentiel> lues = unites.stream()
-                .map(u -> EntrepriseReferentiel.depuis(u, Optional.ofNullable(sieges.get(u.siren()))))
-                .toList();
+        List<EntrepriseReferentiel> lues = referentiel.lireDansSirene(sirens);
         etat.charges.addAndGet(entreprises.enregistrer(lues, OffsetDateTime.now()));
 
-        List<Siren> trouves = unites.stream().map(UniteLegale::siren).toList();
+        Set<Siren> trouves = lues.stream().map(EntrepriseReferentiel::siren).collect(Collectors.toSet());
         List<DepotRejets.RejetMotive> introuvables = sirens.stream()
                 .filter(s -> !trouves.contains(s))
                 .map(s -> new DepotRejets.RejetMotive(s.valeur(), MOTIF_INTROUVABLE,

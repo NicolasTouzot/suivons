@@ -20,7 +20,7 @@ Plan validé, exécuté par étapes, avec un point d'étape auprès du porteur a
 | 8 | CI GitHub Actions (build, TU, TI, lint front, TS, scan dépendances et licences compatibles AGPL) | ✅ fait |
 | 9 | Spike sources → `docs/sources/` (endpoints, formats, volumétrie, identifiants, écarts à la spec) | ✅ fait (compléments en session locale, voir `docs/sources/README.md`) |
 
-## Lot 1 — Référentiel (en cours)
+## Lot 1 — Référentiel (terminé)
 
 Plan validé le 2026-09-27, une PR vers `main` par étape :
 
@@ -30,9 +30,7 @@ Plan validé le 2026-09-27, une PR vers `main` par étape :
 | 2 | Commande de migration dédiée (ADR 0005) : `./gradlew :db:migrate`, image Flyway en production (`docs/exploitation.md`) | ✅ fait |
 | 3 | `referentiel-client` : clients Sirene et Recherche d'entreprises, quotas, cache (Caffeine), disjoncteur (Resilience4j), mode dégradé | ✅ fait |
 | 4 | `ingestion-core` : pipeline §7.3 en job Spring Batch, points d'extension, idempotence, règle ArchUnit « seul ingestion-core écrit dans core.flux » | ✅ fait |
-| 5 | `ingestion-sirene` : rafraîchissement de `core.entreprise`, chargement de `core.naf` (fichiers INSEE) | ✅ fait (PR en revue) |
-
-Suite : **lot 1 bis** (tranche verticale, SPEC §12).
+| 5 | `ingestion-sirene` : rafraîchissement de `core.entreprise`, chargement de `core.naf` (fichiers INSEE) | ✅ fait |
 
 Décisions du lot : clients d'API sans Spring Boot côté logique (configuration Spring à importer explicitement, `ReferentielClientConfiguration`) ; une entité en diffusion partielle garde sa dénomination dans Sirene (personne morale) : le masquage relève du référentiel et de l'affichage ; **tranche verticale** après le lot 1 (lot 1 bis, SPEC §12 : un extrait DECP réel jusqu'à une fiche entreprise dans le front) et **démo dans chaque PR** (décidé le 2026-09-27, pour rendre le travail visible plus tôt) ; `core.flux` et `core.payeur` créés dès le lot 1 (nécessaires à `ingestion-core`) ; tables Spring Batch dans `ops` (préfixe `batch_`) ; NAF chargée depuis les fichiers INSEE, NAF 2025 prévue dans le modèle ; Resilience4j et Caffeine ajoutés.
 
@@ -42,6 +40,22 @@ Décisions du lot : clients d'API sans Spring Boot côté logique (configuration
 - Référentiel : job Spring Batch en deux étapes. D'abord le retrait des entreprises sans flux, non rafraîchies depuis `suivons.referentiel-minimal.delai-grace` (1 jour : une entreprise ajoutée par un rattachement dont les flux ne sont pas encore écrits est protégée). Ensuite la relecture de toutes les autres par lots de 1 000 (unités légales et sièges, deux appels Sirene et une transaction par lot). Seules les lignes qui changent sont réécrites ; `rafraichi_le` est la date de la dernière vérification. SIREN inconnu de l'INSEE : conservé tel quel, tracé dans `ops.rejet`. Quota épuisé ou API indisponible : run en échec, lots déjà traités acquis.
 - Vie privée : la dénomination d'une entreprise non diffusible ou d'une personne physique n'est **jamais** écrite dans `core.entreprise`. Une activité codée dans une nomenclature antérieure à la NAF rév. 2 (entreprises anciennes) n'est pas conservée (`naf_code` vide).
 - Règle ArchUnit « seul ingestion-core écrit dans core.flux » : elle juge au niveau de la classe. La lecture des flux (`EntreprisesSansFlux`) est donc séparée de l'écriture des entreprises (`DepotEntreprises`).
+
+## Lot 1 bis — Tranche verticale (en cours)
+
+Plan validé le 2026-09-28, une PR vers `main` par étape :
+
+| Étape | Contenu | État |
+|-------|---------|------|
+| 1 | `ingestion-decp` minimale : un mois réel (format 2022), un flux par (marché, titulaire), rattachement par SIRET, `raw.decp_record` (`V7`) | ✅ fait (PR en revue) |
+| 2 | `GET /entreprises/{siren}` (contrat d'abord) : identité minimale, total tracé, flux avec lien vers la source | ⏭️ prochaine |
+| 3 | Fiche entreprise dans le front, stack `docker-compose` complète, TS Playwright + axe-core | à faire |
+
+Étape 1 (2026-09-28) :
+- Écriture du référentiel minimal déplacée d'`ingestion-sirene` vers `reconciliation` (`fr.suivons.reconciliation.referentiel` : `ReferentielMinimal`, `DepotEntreprises`, `EntreprisesSansFlux`), décidé le 2026-09-28 : partagée par le rafraîchissement SIRENE et le rattachement des sources.
+- `Rattacheur.rattacherLot` : le pipeline rattache chaque lot (chunk) en une fois, pour grouper les appels Sirene (1 000 SIREN par requête). Une erreur de l'API fait échouer le run (jamais un `NON_RESOLU` par défaut) ; ses données brutes sont retraitées au run suivant.
+- DECP : export JSON filtré sur un mois (`suivons.decp.mois`, variable `SUIVONS_DECP_MOIS`), garde-fou contre les réindexations du producteur. Règles minimales de fusion (`FusionDecp`) et de bornes (`TransformationDecp`) : dernière publication, montant de la dernière modification sinon montant le plus élevé, groupement → `PARTAGE`, accord-cadre → `PLAFOND`, `ABERRANT` si ≤ 1 € ou > 1 Md€. Payeur = SIRET de l'acheteur, type `AUTRE` (nom et catégorie via Sirene plus tard). Lien vers la source : page du jeu filtrée sur le marché.
+- `Siren.lire` accepte les SIRET de La Poste (SIREN 356000000), dont la clé n'est pas celle de Luhn (somme des chiffres multiple de 5).
 
 ## Décisions prises
 
@@ -82,11 +96,11 @@ Décisions du lot : clients d'API sans Spring Boot côté logique (configuration
 
 ## Points ouverts
 
-- Suppression des flux dont l'enregistrement disparaît de la source : non traitée par `ingestion-core` (SPEC §7.3), à décider pour DECP (lot 1 bis / lot 2).
+- Suppression des flux dont l'enregistrement disparaît de la source : non traitée par `ingestion-core` (SPEC §7.3), à décider pour DECP au lot 2.
+- DECP, même (marché, titulaire) à montants différents sur une même publication : montant le plus élevé retenu au lot 1 bis, à confirmer au lot 2 (`docs/sources/decp.md`, piège 12).
 - Conditions de réutilisation TAM et Kohesio à vérifier avant le lot 5 (SPEC §14).
 - Pistes hors spec (de minimis, BOAMP, annuaire de l'administration, Melodi, info-financière) : `docs/sources/pistes.md`.
 - Compléments du spike en session locale (Recherche d'entreprises, data.gouv.fr, conditions de réutilisation TAM et Kohesio) : `docs/sources/README.md`.
 - **Hébergement de production** : la limite par ASN de l'API Recherche d'entreprises (30 req/s, voire blocage des clouds publics) est un critère de choix (`docs/sources/recherche-entreprises.md`).
 - Quota API Sirene suffisant face aux robots d'indexation (lot 7).
 - NAF 2025 dans Sirene : l'API 3.11 expose déjà un champ d'activité en NAF 2025 (`activitePrincipaleNAF25UniteLegale`, à confirmer) ; à lire au passage du 1er janvier 2027 (le référentiel accepte déjà `NAF2025`).
-- Ajout au référentiel des entreprises rattachées (SPEC §6.5, étape 1) : l'écriture de `core.entreprise` est aujourd'hui dans `ingestion-sirene` ; son emplacement partagé (réconciliation) est à décider au lot 1 bis.

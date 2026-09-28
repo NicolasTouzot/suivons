@@ -29,6 +29,7 @@ import org.springframework.batch.infrastructure.repeat.RepeatStatus;
 import org.springframework.transaction.PlatformTransactionManager;
 
 import fr.suivons.domain.FluxInvalideException;
+import fr.suivons.domain.FluxNormalise;
 import fr.suivons.ingestion.core.source.ContexteExtraction;
 import fr.suivons.ingestion.core.source.EnregistrementSource;
 import fr.suivons.ingestion.core.source.RafraichissementMart;
@@ -127,8 +128,8 @@ public class PipelineIngestion {
                 .<EnregistrementSource, Traitement>chunk(tailleLot)
                 .transactionManager(transactions)
                 .reader(lecteurBrut(source, etat, options))
-                .processor(enregistrement -> traiter(source, rattacheur, enregistrement))
-                .writer(lot -> ecrire(source, etat, lot))
+                .processor(enregistrement -> traiter(source, enregistrement))
+                .writer(lot -> ecrire(source, rattacheur, etat, lot))
                 .build();
 
         Step finalisation = new StepBuilder("finalisation-" + source.code(), jobRepository)
@@ -166,7 +167,7 @@ public class PipelineIngestion {
                 .build();
     }
 
-    private Traitement traiter(SourceFlux source, Rattacheur rattacheur, EnregistrementSource enregistrement) {
+    private Traitement traiter(SourceFlux source, EnregistrementSource enregistrement) {
         Transformation transformation;
         try {
             transformation = source.transformer(enregistrement);
@@ -176,21 +177,28 @@ public class PipelineIngestion {
         return switch (transformation) {
             case Transformation.Rejet rejet -> Traitement.rejet(new DepotRejets.RejetMotive(
                     enregistrement.sourceRecordId(), rejet.motif(), enregistrement.payload()));
-            case Transformation.Flux flux -> {
-                Rattachement rattachement = rattacheur.rattacher(flux.flux());
-                yield Traitement.flux(new DepotFlux.FluxRattache(flux.flux(), rattachement));
-            }
+            case Transformation.Flux flux -> Traitement.flux(flux.flux());
         };
     }
 
-    private void ecrire(SourceFlux source, EtatRun etat, Chunk<? extends Traitement> lot) {
-        List<DepotFlux.FluxRattache> flux = new ArrayList<>();
+    /** Rattache les flux du lot en une fois (appels groupés aux API d'appui), puis écrit flux et rejets. */
+    private void ecrire(SourceFlux source, Rattacheur rattacheur, EtatRun etat, Chunk<? extends Traitement> lot) {
+        List<FluxNormalise> flux = new ArrayList<>();
         List<DepotRejets.RejetMotive> motives = new ArrayList<>();
         for (Traitement traitement : lot) {
             traitement.flux().ifPresent(flux::add);
             traitement.rejet().ifPresent(motives::add);
         }
-        etat.charges.addAndGet(depotFlux.ecrire(source.code(), etat.runId, etat.extraitLe, flux));
+        List<Rattachement> rattachements = flux.isEmpty() ? List.of() : rattacheur.rattacherLot(flux);
+        if (rattachements.size() != flux.size()) {
+            throw new IllegalStateException("Le rattacheur a renvoyé " + rattachements.size() + " rattachements pour "
+                    + flux.size() + " flux");
+        }
+        List<DepotFlux.FluxRattache> rattaches = new ArrayList<>(flux.size());
+        for (int i = 0; i < flux.size(); i++) {
+            rattaches.add(new DepotFlux.FluxRattache(flux.get(i), rattachements.get(i)));
+        }
+        etat.charges.addAndGet(depotFlux.ecrire(source.code(), etat.runId, etat.extraitLe, rattaches));
         etat.rejetes.addAndGet(rejets.enregistrer(etat.runId, motives));
     }
 
@@ -253,10 +261,10 @@ public class PipelineIngestion {
         };
     }
 
-    /** Résultat du traitement d'un enregistrement : un flux rattaché ou un rejet motivé. */
-    record Traitement(Optional<DepotFlux.FluxRattache> flux, Optional<DepotRejets.RejetMotive> rejet) {
+    /** Résultat de la transformation d'un enregistrement : un flux (à rattacher) ou un rejet motivé. */
+    record Traitement(Optional<FluxNormalise> flux, Optional<DepotRejets.RejetMotive> rejet) {
 
-        static Traitement flux(DepotFlux.FluxRattache flux) {
+        static Traitement flux(FluxNormalise flux) {
             return new Traitement(Optional.of(flux), Optional.empty());
         }
 

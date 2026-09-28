@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation(project(":ingestion-core"))
     implementation(project(":referentiel-client"))
+    implementation(project(":reconciliation"))
     implementation(libs.poi.ooxml)
 
     integrationTestImplementation(libs.wiremock)

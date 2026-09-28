@@ -19,3 +19,12 @@ logging:
   structured:
     format:
       console: ecs
+
+suivons:
+  referentiel:
+    sirene:
+      # Clé du plan « Accès public » de l'API Sirene (rattachement), jamais versionnée
+      cle-api: ${INSEE_API_KEY:}
+  decp:
+    # Lot 1 bis : un mois du format 2022 (mois de notification)
+    mois: ${SUIVONS_DECP_MOIS:2026-06}

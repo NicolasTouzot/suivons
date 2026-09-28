@@ -15,14 +15,18 @@ class SirenTest {
             "552 032 534, 552032534",
             "'552 032 534', 552032534",
             "55203253400703, 552032534",
-            "552 032 534 00703, 552032534"
+            "552 032 534 00703, 552032534",
+            // Établissement de La Poste : somme des chiffres multiple de 5, clé de Luhn invalide
+            "35600000000001, 356000000"
     })
     void litUnSirenOuUnSiretQuelleQueSoitSaPresentation(String identifiant, String attendu) {
         assertThat(Siren.lire(identifiant)).contains(new Siren(attendu));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "55203253", "552032535", "55203253400704", "ABC032534", "5520325340070"})
+    @ValueSource(strings = {"", "55203253", "552032535", "55203253400704", "ABC032534", "5520325340070",
+            // La Poste : clé de Luhn valide mais somme des chiffres non multiple de 5
+            "35600000000014"})
     void ignoreUnIdentifiantInvalide(String identifiant) {
         assertThat(Siren.lire(identifiant)).isEmpty();
     }

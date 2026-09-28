@@ -1,10 +1,12 @@
-package fr.suivons.ingestion.sirene.referentiel;
+package fr.suivons.reconciliation.referentiel;
 
 import static fr.suivons.db.jooq.core.Tables.ENTREPRISE;
 import static org.jooq.impl.DSL.row;
 
 import java.time.OffsetDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.jooq.DSLContext;
 import org.jooq.Query;
@@ -19,6 +21,34 @@ public class DepotEntreprises {
 
     public DepotEntreprises(DSLContext dsl) {
         this.dsl = dsl;
+    }
+
+    /** SIREN demandés déjà présents dans le référentiel. */
+    public Set<Siren> existants(Collection<Siren> sirens) {
+        if (sirens.isEmpty()) {
+            return Set.of();
+        }
+        return dsl.select(ENTREPRISE.SIREN)
+                .from(ENTREPRISE)
+                .where(ENTREPRISE.SIREN.in(sirens.stream().map(Siren::valeur).distinct().toList()))
+                .fetchSet(r -> new Siren(r.value1()));
+    }
+
+    /** Ajoute des entreprises au référentiel ; une entreprise déjà présente est laissée telle quelle. */
+    public int ajouter(List<EntrepriseReferentiel> entreprises, OffsetDateTime maintenant) {
+        if (entreprises.isEmpty()) {
+            return 0;
+        }
+        var insertion = dsl.insertInto(ENTREPRISE, ENTREPRISE.SIREN, ENTREPRISE.DENOMINATION, ENTREPRISE.NAF_CODE,
+                ENTREPRISE.NAF_NOMENCLATURE, ENTREPRISE.COMMUNE_SIEGE, ENTREPRISE.DEPARTEMENT_SIEGE, ENTREPRISE.ETAT,
+                ENTREPRISE.DIFFUSIBLE, ENTREPRISE.PERSONNE_PHYSIQUE, ENTREPRISE.RAFRAICHI_LE);
+        for (EntrepriseReferentiel e : entreprises) {
+            insertion = insertion.values(e.siren().valeur(), e.denomination().orElse(null),
+                    e.naf().map(ActivitePrincipale::code).orElse(null),
+                    e.naf().map(ActivitePrincipale::nomenclature).orElse(null), e.communeSiege().orElse(null),
+                    e.departementSiege().orElse(null), e.etat(), e.diffusible(), e.personnePhysique(), maintenant);
+        }
+        return insertion.onConflictDoNothing().execute();
     }
 
     /** SIREN du référentiel, par pages dans l'ordre croissant. */

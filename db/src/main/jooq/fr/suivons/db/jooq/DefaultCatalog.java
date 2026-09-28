@@ -6,6 +6,7 @@ package fr.suivons.db.jooq;
 
 import fr.suivons.db.jooq.core.Core;
 import fr.suivons.db.jooq.ops.Ops;
+import fr.suivons.db.jooq.raw.Raw;
 
 import java.util.Arrays;
 import java.util.List;
@@ -39,6 +40,11 @@ public class DefaultCatalog extends CatalogImpl {
     public final Ops OPS = Ops.OPS;
 
     /**
+     * Données brutes telles que reçues, rejouables
+     */
+    public final Raw RAW = Raw.RAW;
+
+    /**
      * No further instances allowed
      */
     private DefaultCatalog() {
@@ -49,7 +55,8 @@ public class DefaultCatalog extends CatalogImpl {
     public final List<Schema> getSchemas() {
         return Arrays.asList(
             Core.CORE,
-            Ops.OPS
+            Ops.OPS,
+            Raw.RAW
         );
     }
 

@@ -190,6 +190,44 @@ class PipelineIngestionIT {
         assertThat(reprise.compteurs().charges()).isEqualTo(3);
     }
 
+    @Test
+    void rattacheParLotEtUnEchecDuRattachementEstRetraiteAuRunSuivant() {
+        java.util.List<Integer> lots = new java.util.ArrayList<>();
+        Rattacheur enPanne = new Rattacheur() {
+            @Override
+            public Rattachement rattacher(FluxNormalise flux) {
+                throw new UnsupportedOperationException("appel unitaire inattendu");
+            }
+
+            @Override
+            public java.util.List<Rattachement> rattacherLot(java.util.List<FluxNormalise> lot) {
+                throw new IllegalStateException("API d'appui indisponible");
+            }
+        };
+        Rattacheur parLot = new Rattacheur() {
+            @Override
+            public Rattachement rattacher(FluxNormalise flux) {
+                throw new UnsupportedOperationException("appel unitaire inattendu");
+            }
+
+            @Override
+            public java.util.List<Rattachement> rattacherLot(java.util.List<FluxNormalise> lot) {
+                lots.add(lot.size());
+                return lot.stream().map(rattacheur::rattacher).toList();
+            }
+        };
+
+        PipelineIngestion.Resultat echec = pipeline.executer(source, enPanne, mart,
+                PipelineIngestion.Options.PAR_DEFAUT);
+        PipelineIngestion.Resultat reprise = pipeline.executer(source, parLot, mart,
+                PipelineIngestion.Options.PAR_DEFAUT);
+
+        assertThat(echec.statut()).isEqualTo(SuiviRuns.Statut.ECHEC);
+        assertThat(reprise.statut()).isEqualTo(SuiviRuns.Statut.SUCCES);
+        assertThat(reprise.compteurs().charges()).isEqualTo(3);
+        assertThat(lots).as("lots de 2 enregistrements, rejet exclu").containsExactly(2, 1);
+    }
+
     private PipelineIngestion.Resultat lancer() {
         return pipeline.executer(source, rattacheur, mart, PipelineIngestion.Options.PAR_DEFAUT);
     }

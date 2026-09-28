@@ -1,4 +1,4 @@
-package fr.suivons.ingestion.sirene.referentiel;
+package fr.suivons.reconciliation.referentiel;
 
 import java.util.Optional;
 import java.util.Set;

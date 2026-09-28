@@ -12,6 +12,7 @@ public record Siren(String valeur) {
 
     private static final Pattern NEUF_CHIFFRES = Pattern.compile("\\d{9}");
     private static final Pattern QUATORZE_CHIFFRES = Pattern.compile("\\d{14}");
+    private static final String SIREN_LA_POSTE = "356000000";
     private static final Pattern SEPARATEURS = Pattern.compile("[\\s\\u00A0\\u202F.-]");
 
     public Siren {
@@ -29,12 +30,23 @@ public record Siren(String valeur) {
         String candidat;
         if (NEUF_CHIFFRES.matcher(chiffres).matches()) {
             candidat = chiffres;
-        } else if (QUATORZE_CHIFFRES.matcher(chiffres).matches() && cleDeLuhnValide(chiffres)) {
+        } else if (QUATORZE_CHIFFRES.matcher(chiffres).matches() && siretValide(chiffres)) {
             candidat = chiffres.substring(0, 9);
         } else {
             return Optional.empty();
         }
         return cleDeLuhnValide(candidat) ? Optional.of(new Siren(candidat)) : Optional.empty();
+    }
+
+    /**
+     * Clé d'un SIRET : Luhn, sauf pour les établissements de La Poste (SIREN 356000000), trop nombreux pour la clé
+     * de Luhn, dont la somme des chiffres est un multiple de 5 (règle de l'INSEE).
+     */
+    static boolean siretValide(String siret) {
+        if (siret.startsWith(SIREN_LA_POSTE)) {
+            return siret.chars().map(c -> c - '0').sum() % 5 == 0;
+        }
+        return cleDeLuhnValide(siret);
     }
 
     static boolean cleDeLuhnValide(String chiffres) {
