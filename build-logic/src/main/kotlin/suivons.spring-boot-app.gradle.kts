@@ -24,5 +24,15 @@ testing {
                 implementation(libs.findLibrary("spring-boot-starter-test").get())
             }
         }
+        // Chaque application démarre en TI sur un vrai PostgreSQL, schéma appliqué par Flyway (jamais en production)
+        named<JvmTestSuite>("integrationTest") {
+            dependencies {
+                implementation(libs.findLibrary("spring-boot-testcontainers").get())
+                implementation(libs.findLibrary("testcontainers-postgresql").get())
+                implementation(libs.findLibrary("testcontainers-junit").get())
+                runtimeOnly(libs.findLibrary("spring-boot-starter-flyway").get())
+                runtimeOnly(libs.findLibrary("flyway-postgresql").get())
+            }
+        }
     }
 }

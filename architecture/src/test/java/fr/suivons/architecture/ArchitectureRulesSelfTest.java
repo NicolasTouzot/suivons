@@ -13,6 +13,9 @@ import fr.suivons.api.violation.ApiEcritEnBase;
 import fr.suivons.api.violation.ApiUtiliseReconciliation;
 import fr.suivons.db.violation.DbUtiliseApi;
 import fr.suivons.domain.violation.DomaineUtiliseJooq;
+import fr.suivons.ingestion.core.violation.CoreEcritLesFlux;
+import fr.suivons.ingestion.decp.violation.DecpEcritLesFlux;
+import fr.suivons.ingestion.decp.violation.DecpLitLesFlux;
 import fr.suivons.ingestion.decp.violation.DecpUtiliseTam;
 import fr.suivons.ingestion.tam.violation.TamInterne;
 import fr.suivons.reconciliation.violation.ReconciliationInterne;
@@ -52,6 +55,17 @@ class ArchitectureRulesSelfTest {
         JavaClasses classes = new ClassFileImporter().importClasses(SignalementEcrit.class);
         assertThat(ArchitectureRules.API_ECRIT_SEULEMENT_LES_SIGNALEMENTS.evaluate(classes).hasViolation())
                 .isFalse();
+    }
+
+    @Test
+    void detecteUneEcritureDesFluxHorsIngestionCore() {
+        assertViolation(ArchitectureRules.SEUL_INGESTION_CORE_ECRIT_LES_FLUX, DecpEcritLesFlux.class);
+    }
+
+    @Test
+    void autoriseLaLectureDesFluxEtLEcritureParIngestionCore() {
+        JavaClasses classes = new ClassFileImporter().importClasses(DecpLitLesFlux.class, CoreEcritLesFlux.class);
+        assertThat(ArchitectureRules.SEUL_INGESTION_CORE_ECRIT_LES_FLUX.evaluate(classes).hasViolation()).isFalse();
     }
 
     @Test

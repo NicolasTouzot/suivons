@@ -1,0 +1,21 @@
+# Ingestion decp (SPEC.md §7.3) : lancée par un ordonnanceur externe, jamais au démarrage d'un serveur.
+# Base de données : SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD (rôle suivons_ingestion).
+spring:
+  application:
+    name: suivons-ingestion-decp
+  main:
+    web-application-type: none
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      # Métadonnées Spring Batch dans ops, créées par les migrations (V3__spring_batch.sql)
+      initialize-schema: never
+      table-prefix: ops.BATCH_
+  jooq:
+    sql-dialect: postgres
+
+logging:
+  structured:
+    format:
+      console: ecs

@@ -1,6 +1,6 @@
 # Modèle de données
 
-> État au lot 1, étape 2 (migrations `V1` à `V5`). Référence : `SPEC.md` §6. Les tables `raw.*` (une par source de flux) arrivent avec chaque ingestion, `mart.*` avec l'API (lot 3), `ops.signalement` au lot 6.
+> État au lot 1, étape 4 (migrations `V1` à `V5`). Référence : `SPEC.md` §6. Les tables `raw.*` (une par source de flux, clé `source_record_id`, dernière version reçue et run qui l'a modifiée) arrivent avec chaque ingestion, `mart.*` avec l'API (lot 3), `ops.signalement` au lot 6.
 
 ```mermaid
 erDiagram

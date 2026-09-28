@@ -1,0 +1,9 @@
+spring:
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: never
+      table-prefix: ops.BATCH_
+  jooq:
+    sql-dialect: postgres

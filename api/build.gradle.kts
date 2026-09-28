@@ -14,11 +14,6 @@ dependencies {
     implementation(libs.spring.boot.starter.jooq)
     runtimeOnly(libs.postgresql)
 
-    integrationTestImplementation(libs.spring.boot.testcontainers)
-    integrationTestImplementation(libs.testcontainers.postgresql)
-    integrationTestImplementation(libs.testcontainers.junit)
+    // TI sur PostgreSQL (Testcontainers, Flyway en TI seulement) : fournis par le plugin suivons.spring-boot-app
     integrationTestImplementation(libs.snakeyaml)
-    // L'API ne migre jamais le schéma (rôle en lecture seule) : Flyway n'est présent qu'en TI
-    integrationTestRuntimeOnly(libs.spring.boot.starter.flyway)
-    integrationTestRuntimeOnly(libs.flyway.postgresql)
 }
