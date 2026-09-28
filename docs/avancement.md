@@ -89,6 +89,8 @@ Décisions du 2026-09-28 : lecture du Parquet par DuckDB (le plus simple dans un
 - `ingestion-decp` lit l'export Parquet complet (`/exports/parquet`, 85 Mo) avec DuckDB en mémoire, trié par marché : les lignes d'un marché sont fusionnées ensemble, sans charger le jeu en mémoire. Le paramètre `suivons.decp.mois` (tranche verticale) disparaît. Version de la source : date de modification du jeu (métadonnées du portail).
 - `ingestion-core` : étape `preparation-rattachement` entre le chargement brut et la transformation. Les SIREN distincts des enregistrements à traiter sont passés au rattacheur par lots (`Rattacheur.preparer`), une transaction par lot. `RattacheurSiret` les lit dans Sirene en une fois (environ 200 appels pour 102 000 SIREN, au lieu d'environ 1 500 lot de flux par lot de flux) et retient les SIREN inconnus de l'INSEE pour ne pas les redemander.
 - Fixture : l'extrait JSON relu reste la référence ; `fixtures/decp/generer-parquet.py` en produit la version Parquet, aux types de l'export réel.
+- Limiteur de débit des API d'appui lissé (un appel toutes les 2 s pour Sirene) : une rafale de 30 appels en début de minute provoquait des 429 de l'INSEE.
+- Mesures du premier chargement complet (2026-09-28, environnement cloud, `-Xmx1g`) : 39 min 31 s au total, dont téléchargement 2 min 51, chargement brut 1 min 13 (759 385 enregistrements), préparation du rattachement 5 min 59 (101 848 SIREN), transformation et écriture 29 min 26 (≈ 430 flux/s, à optimiser) ; mémoire résidente maximale 835 Mo ; base de 942 Mo, dont 481 Mo de données brutes. Résultat : 759 385 flux, 99,7 % rattachés, 101 796 entreprises, 22 298 payeurs, 1 975 flux aberrants. API sans mart : synthèse de l'entreprise la plus fournie (7 409 flux) en ≈ 35 ms.
 
 ## Décisions prises
 
