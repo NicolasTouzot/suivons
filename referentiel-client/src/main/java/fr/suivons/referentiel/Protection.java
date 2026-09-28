@@ -26,9 +26,11 @@ public final class Protection {
 
     public Protection(String nom, int appelsParPeriode, Duration periode, ProtectionProperties reglages) {
         this.nom = nom;
+        // Débit lissé (un appel par intervalle) plutôt qu'une rafale en début de période : le fournisseur peut
+        // compter sur une fenêtre glissante (constaté avec l'API Sirene : 429 après une rafale de 30 appels)
         this.limiteur = RateLimiter.of(nom, RateLimiterConfig.custom()
-                .limitForPeriod(appelsParPeriode)
-                .limitRefreshPeriod(periode)
+                .limitForPeriod(1)
+                .limitRefreshPeriod(periode.dividedBy(appelsParPeriode))
                 .timeoutDuration(reglages.attentePermis())
                 .build());
         this.relances = Retry.of(nom, RetryConfig.<Object>custom()
@@ -86,5 +88,10 @@ public final class Protection {
             }
             return attente;
         };
+    }
+
+    /** Intervalle minimal entre deux appels (débit lissé). */
+    Duration intervalleEntreAppels() {
+        return limiteur.getRateLimiterConfig().getLimitRefreshPeriod();
     }
 }
