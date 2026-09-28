@@ -11,6 +11,7 @@ import fr.suivons.db.jooq.ops.Ops;
 import fr.suivons.db.jooq.ops.tables.Rejet.RejetPath;
 import fr.suivons.db.jooq.ops.tables.Source.SourcePath;
 import fr.suivons.db.jooq.ops.tables.records.IngestionRunRecord;
+import fr.suivons.db.jooq.raw.tables.DecpRecord.DecpRecordPath;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -235,6 +236,19 @@ public class IngestionRun extends TableImpl<IngestionRunRecord> {
             _rejet = new RejetPath(this, null, Keys.REJET__REJET_RUN_ID_FKEY.getInverseKey());
 
         return _rejet;
+    }
+
+    private transient DecpRecordPath _decpRecord;
+
+    /**
+     * Get the implicit to-many join path to the <code>raw.decp_record</code>
+     * table
+     */
+    public DecpRecordPath decpRecord() {
+        if (_decpRecord == null)
+            _decpRecord = new DecpRecordPath(this, null, fr.suivons.db.jooq.raw.Keys.DECP_RECORD__DECP_RECORD_RUN_ID_FKEY.getInverseKey());
+
+        return _decpRecord;
     }
 
     @Override

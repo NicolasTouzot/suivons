@@ -1,4 +1,4 @@
-package fr.suivons.ingestion.sirene.referentiel;
+package fr.suivons.reconciliation.referentiel;
 
 import static fr.suivons.db.jooq.core.Tables.ENTREPRISE;
 import static fr.suivons.db.jooq.core.Tables.FLUX;

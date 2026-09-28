@@ -43,6 +43,8 @@ Les deux formats se complètent : **l'historique 2018-2023 n'existe qu'au format
 8. **Identifiants titulaires** : SIRET à 99,8 % (706 397 lignes), puis TVA (1 416), HORS-UE (172), IREP (159), RIDET, TAHITI. 194 « SIRET » à 17 caractères (saisie erronée), TVA de longueurs variables.
 9. **Format 2019 : SIRET du titulaire typé nombre** dans l'API (`titulaire_id_1: 38371167801308`) : les zéros de tête sont perdus. Recompléter à 14 chiffres puis contrôler la clé de Luhn ; `titulaire_typeidentifiant_1` contient aussi des valeurs parasites (SIRET dans le champ type).
 10. **Dates de notification aberrantes** : quelques marchés de 2010-2017 dans le format 2022.
+11. **Réindexation chez le producteur** (constaté le 2026-09-28) : pendant plusieurs dizaines de minutes, l'API n'expose qu'une partie du jeu (261 000 puis 340 000 enregistrements interrogeables sur 708 152 annoncés), et un export pris à ce moment est incomplet sans erreur HTTP. `ingestion-decp` compare le nombre d'enregistrements interrogeables à `metas.default.records_count` et reporte l'export s'ils diffèrent.
+12. **Même (marché, titulaire) à montants différents, même plateforme, même date de publication** (juin 2026 : 302 couples sur 16 014) : lots d'un titulaire publiés sous un seul identifiant, ou republication. Lot 1 bis : on retient le montant le plus élevé, jamais la somme (borne prudente) ; règle à confirmer au lot 2.
 
 ## Données utiles pour les autres canaux
 

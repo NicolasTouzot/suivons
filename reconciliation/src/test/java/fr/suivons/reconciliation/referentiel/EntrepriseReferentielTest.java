@@ -1,4 +1,4 @@
-package fr.suivons.ingestion.sirene.referentiel;
+package fr.suivons.reconciliation.referentiel;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
