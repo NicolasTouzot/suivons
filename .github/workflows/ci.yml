@@ -23,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
       - name: Build, TU, ArchUnit, validation du contrat
         run: ./gradlew build
       - name: TI (Testcontainers PostgreSQL)
@@ -49,7 +49,7 @@ jobs:
           fi
       - name: Rapports de tests
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rapports-back
           path: '**/build/reports/tests/'
@@ -60,8 +60,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: front/.nvmrc
       - name: Lint Redocly
@@ -75,14 +75,14 @@ jobs:
       run:
         working-directory: front
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       # Java : génération du client d'API depuis le contrat (npm run generate:api)
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/setup-gradle@v5
-      - uses: actions/setup-node@v5
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: front/.nvmrc
           cache: npm
@@ -98,7 +98,7 @@ jobs:
         run: npm run e2e
       - name: Rapport Playwright
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rapport-playwright
           path: front/playwright-report/
@@ -109,13 +109,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/setup-gradle@v5
-      - uses: actions/setup-node@v5
+      - uses: gradle/actions/setup-gradle@v6
+      - uses: actions/setup-node@v7
         with:
           node-version-file: front/.nvmrc
           cache: npm
@@ -150,7 +150,7 @@ jobs:
         run: docker compose --profile stack logs
       - name: Rapport Playwright
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rapport-parcours
           path: front/playwright-report-parcours/
@@ -164,17 +164,17 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: ${{ env.JAVA_VERSION }}
       # Graphe des dépendances Gradle transmis à GitHub (alertes Dependabot, revue de PR).
       # Les runs Dependabot n'ont qu'un jeton en lecture : pas d'envoi possible, la revue porte alors
       # sur les manifestes lus directement par GitHub (npm, actions) et sur le graphe de main.
-      - uses: gradle/actions/dependency-submission@v5
+      - uses: gradle/actions/dependency-submission@v6
         if: github.event_name != 'pull_request' || (github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]')
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version-file: front/.nvmrc
       - name: Vulnérabilités npm (dépendances d'exécution)
@@ -184,7 +184,7 @@ jobs:
       # (identifiants SPDX uniquement : la « Commons Clause » n'en a pas et ne peut pas être listée)
       - name: Revue des dépendances
         if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           fail-on-severity: high
           retry-on-snapshot-warnings: true
