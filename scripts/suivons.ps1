@@ -32,6 +32,11 @@ function Verifier-Docker {
     }
 }
 
+# Ouverture du navigateur : un confort, jamais une erreur
+function Ouvrir-Site {
+    try { Start-Process $Site } catch { Info "Ouvrez $Site dans votre navigateur." }
+}
+
 function Attendre-Site {
     Info "Attente du site (jusqu'à 3 minutes)..."
     for ($i = 0; $i -lt 90; $i++) {
@@ -58,7 +63,7 @@ function Demarrer {
     Attendre-Site
     Ok "Site disponible : $Site"
     Info 'Base vide au premier démarrage : chargez le jeu de démonstration (2) ou les vraies données (3).'
-    Start-Process $Site
+    Ouvrir-Site
 }
 
 function Charger-Demo {
@@ -134,7 +139,7 @@ function Executer([string]$Choix) {
         { $_ -in '1', 'demarrer' } { Demarrer; break }
         { $_ -in '2', 'demo' } { Charger-Demo; break }
         { $_ -in '3', 'donnees' } { Charger-Donnees; break }
-        { $_ -in '4', 'ouvrir' } { Start-Process $Site; break }
+        { $_ -in '4', 'ouvrir' } { Ouvrir-Site; break }
         { $_ -in '5', 'etat' } { Etat; break }
         { $_ -in '6', 'arreter' } { Arreter; break }
         { $_ -in '7', 'reinitialiser' } { Reinitialiser; break }

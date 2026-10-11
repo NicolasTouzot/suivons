@@ -17,10 +17,12 @@ verifier_docker() {
   docker info > /dev/null 2>&1 || erreur "Docker n'est pas démarré. Lancez Docker Desktop (ou le service docker), puis relancez."
 }
 
+# Ouverture du navigateur : un confort, jamais une erreur (poste sans bureau, serveur, CI)
 ouvrir() {
-  if command -v open > /dev/null; then open "$SITE"
-  elif command -v xdg-open > /dev/null; then xdg-open "$SITE" > /dev/null 2>&1 || true
-  else info "Ouvrez $SITE dans votre navigateur."
+  local ouvreur=xdg-open
+  [ "$(uname)" = Darwin ] && ouvreur=open
+  if ! command -v "$ouvreur" > /dev/null || ! "$ouvreur" "$SITE" > /dev/null 2>&1; then
+    info "Ouvrez $SITE dans votre navigateur."
   fi
 }
 
