@@ -5,3 +5,8 @@
 *.gz binary
 *.zip binary
 *.parquet binary
+
+# Scripts de la recette locale, quel que soit le poste qui les récupère (clone ou ZIP)
+*.sh  text eol=lf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

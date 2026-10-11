@@ -1,0 +1,15 @@
+# Contexte de construction des images (Dockerfile) : sources uniquement
+.git
+.gradle
+**/build
+**/node_modules
+**/data
+front/dist
+front/.angular
+front/test-results
+front/playwright-report*
+front/src/app/core/api/generated
+docs
+fixtures
+*.parquet
+.env

@@ -105,40 +105,24 @@ jobs:
           retention-days: 7
 
   parcours:
-    name: Parcours (stack docker-compose, TS)
+    name: Parcours (recette locale, TS)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-      - uses: gradle/actions/setup-gradle@v5
+      # Exactement le chemin de la recette locale (docs/demarrer-en-local.md) : tout est construit dans Docker
+      - name: Recette locale, démarrage (suivons.sh demarrer)
+        run: ./suivons.sh demarrer
+      - name: Recette locale, jeu de démonstration (suivons.sh demo)
+        run: ./suivons.sh demo
       - uses: actions/setup-node@v5
         with:
           node-version-file: front/.nvmrc
           cache: npm
           cache-dependency-path: front/package-lock.json
-      - name: Artefacts de la stack (jar de l'API, bundle SSR du front)
-        run: |
-          ./gradlew :api:bootJar
-          cd front && npm ci && npm run build
-      - name: Base migrée et jeu de démonstration
-        run: |
-          docker compose up -d --wait db
-          ./gradlew :db:migrate
-          docker compose exec -T db psql -v ON_ERROR_STOP=1 -U suivons -d suivons < fixtures/demo/parcours.sql
-      - name: Stack complète (API et front SSR)
-        run: |
-          docker compose --profile stack up -d --build
-          # Prête quand l'API répond à travers le relais du front
-          for i in $(seq 1 90); do
-            if curl -sf http://localhost:4000/api/v1/entreprises/329338883 > /dev/null; then exit 0; fi
-            sleep 2
-          done
-          docker compose --profile stack logs
-          exit 1
+      - name: Dépendances des TS
+        working-directory: front
+        run: npm ci
       - name: Navigateur Playwright
         working-directory: front
         run: npx playwright install --with-deps chromium
@@ -155,6 +139,29 @@ jobs:
           name: rapport-parcours
           path: front/playwright-report-parcours/
           retention-days: 7
+
+  script-windows:
+    name: Recette locale (script Windows)
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      # Windows PowerShell 5.1, celui des postes : encodage (BOM), fins de ligne et syntaxe du script, menu d'aide.
+      # Docker (conteneurs Linux) n'est pas disponible sur les exécuteurs Windows : la stack est testée par le job parcours.
+      - name: Encodage, fins de ligne et syntaxe
+        shell: powershell
+        run: |
+          $octets = [System.IO.File]::ReadAllBytes('scripts\suivons.ps1')
+          if ($octets[0] -ne 0xEF -or $octets[1] -ne 0xBB -or $octets[2] -ne 0xBF) { throw 'suivons.ps1 doit être en UTF-8 avec BOM' }
+          foreach ($fichier in 'scripts\suivons.ps1', 'suivons.cmd') {
+            if (-not ([System.IO.File]::ReadAllText($fichier).Contains("`r`n"))) { throw "$fichier doit avoir des fins de ligne Windows" }
+          }
+          $erreurs = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path 'scripts\suivons.ps1'), [ref]$null, [ref]$erreurs) | Out-Null
+          if ($erreurs.Count -gt 0) { $erreurs; throw 'Erreurs de syntaxe dans suivons.ps1' }
+      - name: Menu d'aide (suivons.cmd)
+        shell: cmd
+        run: suivons.cmd aide > aide.txt && type aide.txt && findstr /C:"recette locale" aide.txt
 
   dependances:
     name: Dépendances (vulnérabilités, licences)

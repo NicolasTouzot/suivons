@@ -36,16 +36,17 @@ services:
       - -cleanDisabled=true
       - migrate
 
-  # Stack complète (profil `stack`) : API et front SSR, sur des artefacts construits au préalable :
-  #   ./gradlew :api:bootJar && (cd front && npm run build) && docker compose --profile stack up -d --build
-  # Base migrée par `./gradlew :db:migrate` (ou le service migrate) ; jeu de démonstration : fixtures/demo/parcours.sql
+  # Stack complète (profil `stack`) : API et front SSR, construits entièrement dans Docker (Dockerfile à la racine).
+  # Recette locale : scripts suivons.cmd (Windows) et suivons.sh (macOS, Linux), voir docs/demarrer-en-local.md.
   api:
-    build: ./api
+    build:
+      context: .
+      target: api
     profiles: [stack]
     depends_on:
       db:
         condition: service_healthy
-    environment:
+    environment: &base
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-suivons}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-suivons}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-suivons}
@@ -54,7 +55,9 @@ services:
       - "${API_PORT:-8080}:8080"
 
   front:
-    build: ./front
+    build:
+      context: .
+      target: front
     profiles: [stack]
     depends_on:
       - api
@@ -65,5 +68,36 @@ services:
     ports:
       - "${FRONT_PORT:-4000}:4000"
 
+  # Ingestions (profil `ingestions`), lancées à la demande : docker compose run --rm ingestion-decp
+  # Clé INSEE lue dans .env (INSEE_API_KEY), jamais versionnée. Journaux lisibles plutôt que JSON.
+  ingestion-decp:
+    build:
+      context: .
+      target: ingestion-decp
+    profiles: [ingestions]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: &ingestion
+      <<: *base
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ""
+      LOGGING_LEVEL_ROOT: WARN
+      LOGGING_LEVEL_FR_SUIVONS: INFO
+    volumes:
+      - cache-ingestion:/app/data
+
+  ingestion-sirene:
+    build:
+      context: .
+      target: ingestion-sirene
+    profiles: [ingestions]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: *ingestion
+    volumes:
+      - cache-ingestion:/app/data
+
 volumes:
   pgdata:
+  cache-ingestion:
