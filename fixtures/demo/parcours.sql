@@ -1,6 +1,7 @@
 -- Jeu de données de démonstration du parcours (lot 1 bis, SPEC.md §10) : extrait réel des flux DECP de juin 2026
 -- (25 flux de COLAS FRANCE, tous ceux de MEDLINE INTERNATIONAL FRANCE, dont un montant hors des bornes plausibles),
--- rattachés via l'API Sirene, plus une entreprise fictive (entrepreneur individuel des fixtures Sirene, jamais nommée).
+-- rattachés via l'API Sirene, plus une entreprise fictive (entrepreneur individuel, jamais nommée), au SIREN 000000000 :
+-- inconnu de l'INSEE, il ne peut pas être confondu avec une entreprise réelle lors d'un rafraîchissement Sirene.
 -- Réinitialise core.flux, core.entreprise et core.payeur : réservé aux environnements de test et de démonstration.
 -- Chargement : docker compose exec -T db psql -v ON_ERROR_STOP=1 -U suivons -d suivons < fixtures/demo/parcours.sql
 BEGIN;
@@ -15,7 +16,7 @@ INSERT INTO core.entreprise (siren, denomination, naf_code, naf_nomenclature, co
     diffusible, personne_physique, rafraichi_le) VALUES
     ('329338883', 'COLAS FRANCE', '42.11Z', 'NAFRev2', 'PARIS', '75', 'ACTIVE', true, false, now()),
     ('408537249', 'MEDLINE INTERNATIONAL FRANCE SAS', '46.46Z', 'NAFRev2', 'MONTIGNY-LE-BRETONNEUX', '78', 'ACTIVE', true, false, now()),
-    ('900000001', NULL, '43.91A', 'NAFRev2', 'COMMUNE FICTIVE', NULL, 'ACTIVE', true, true, now());
+    ('000000000', NULL, '43.91A', 'NAFRev2', 'COMMUNE FICTIVE', NULL, 'ACTIVE', true, true, now());
 
 INSERT INTO core.payeur (identifiant, type) VALUES
     ('13000222300027', 'AUTRE'),
@@ -104,7 +105,7 @@ FROM run, (VALUES
     ('408537249', '26440013600471', 'Dans le cadre du Système d''Acquisition Dynamique (SAD) ayant pour objet la fourniture d’articles à usage unique pour le groupement régional des Pays de la Loire, la présente consultation a pour objet la passation de marchés spécifiques relevant de la catégorie 3 " literie et habillement à usage unique" - 4 lots', '2026-06-05', '26440013600471|202615125F|40853724900042', NULL::bigint, 953552, 'PLAFOND', 'OK', 'https://data.economie.gouv.fr/explore/dataset/decp-2022-marches-valides/table/?q=id%3A%22202615125F%22+AND+acheteur_id%3A%2226440013600471%22'),
     ('408537249', '13002682600011', 'LOT 8 GRAPSGE : Masque médical de type IIR adulte avec dispositif anti-buée', '2026-06-04', '13002682600011|20261146008000|40853724900042', NULL::bigint, 60000, 'PLAFOND', 'OK', 'https://data.economie.gouv.fr/explore/dataset/decp-2022-marches-valides/table/?q=id%3A%2220261146008000%22+AND+acheteur_id%3A%2213002682600011%22'),
     ('408537249', '13002682600011', 'Fourniture de masques sanitaires: Lot 07: Masque médical de type IIR adulte à liens avec visière anti-projection', '2026-06-04', '13002682600011|20266001007000|40853724900042', NULL::bigint, 9169, 'PLAFOND', 'OK', 'https://data.economie.gouv.fr/explore/dataset/decp-2022-marches-valides/table/?q=id%3A%2220266001007000%22+AND+acheteur_id%3A%2213002682600011%22'),
-    ('900000001', '13000222300027', 'Travaux de maçonnerie (exemple fictif)', '2026-06-12', '13000222300027|DEMO|90000000100017', 42000, 42000, 'FERME', 'OK', 'https://data.economie.gouv.fr/explore/dataset/decp-2022-marches-valides/table/')
+    ('000000000', '13000222300027', 'Travaux de maçonnerie (exemple fictif)', '2026-06-12', '13000222300027|DEMO|00000000000000', 42000, 42000, 'FERME', 'OK', 'https://data.economie.gouv.fr/explore/dataset/decp-2022-marches-valides/table/')
 ) AS v(siren, payeur, objet, date_flux, id, ferme, plafond, nature, qualite, url);
 
 COMMIT;

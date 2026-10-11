@@ -44,7 +44,7 @@ test.describe('parcours : rechercher une entreprise, voir l\'argent reçu, ouvri
   });
 
   test("le nom d'un entrepreneur individuel n'est jamais affiché", async ({ page }) => {
-    await page.goto('/entreprises/900000001');
+    await page.goto('/entreprises/000000000');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Entreprise non nommée');
     const montant = page.getByRole('region', { name: 'Argent public tracé' });
     expect(normaliser(await montant.textContent())).toContain('42 000 €');

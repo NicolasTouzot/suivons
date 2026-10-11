@@ -77,7 +77,8 @@ Plan validé le 2026-09-28, une PR vers `main` par étape :
 
 | Étape | Contenu | État |
 |-------|---------|------|
-| 1 | Jeu DECP complet au format 2022 (export Parquet lu avec DuckDB), rattachement préparé en une fois, volumétrie réelle | ✅ fait (PR en revue) |
+| 1 | Jeu DECP complet au format 2022 (export Parquet lu avec DuckDB), rattachement préparé en une fois, volumétrie réelle | ✅ fait |
+| — | **Recette locale** (insérée le 2026-09-28) : `suivons.cmd` (Windows) / `suivons.sh`, images construites dans Docker, ingestions dans le compose, guide `docs/demarrer-en-local.md` | ✅ fait (PR en revue) |
 | 2 | Format 2019 (historique 2018-2023) : SIRET typés nombre, identifiants parasites, fusion avec le format 2022 | ⏭️ prochaine |
 | 3 | Règles complètes : plateformes, modifications, sous-traitance, lots ; calibrage des seuils aberrants (liste blanche) | à faire |
 | 4 | Payeurs : nom et catégorie via Sirene ; message d'erreur conservé dans `ops.ingestion_run` | à faire |
@@ -91,6 +92,12 @@ Décisions du 2026-09-28 : lecture du Parquet par DuckDB (le plus simple dans un
 - Fixture : l'extrait JSON relu reste la référence ; `fixtures/decp/generer-parquet.py` en produit la version Parquet, aux types de l'export réel.
 - Limiteur de débit des API d'appui lissé (un appel toutes les 2 s pour Sirene) : une rafale de 30 appels en début de minute provoquait des 429 de l'INSEE.
 - Mesures du premier chargement complet (2026-09-28, environnement cloud, `-Xmx1g`) : 39 min 31 s au total, dont téléchargement 2 min 51, chargement brut 1 min 13 (759 385 enregistrements), préparation du rattachement 5 min 59 (101 848 SIREN), transformation et écriture 29 min 26 (≈ 430 flux/s, à optimiser) ; mémoire résidente maximale 835 Mo ; base de 942 Mo, dont 481 Mo de données brutes. Résultat : 759 385 flux, 99,7 % rattachés, 101 796 entreprises, 22 298 payeurs, 1 975 flux aberrants. API sans mart : synthèse de l'entreprise la plus fournie (7 409 flux) en ≈ 35 ms.
+
+Recette locale (2026-10-11) :
+- Un seul prérequis, Docker Desktop. `suivons.cmd` (double-clic, menu) lance `scripts/suivons.ps1` (Windows PowerShell 5.1, UTF-8 avec BOM) ; `suivons.sh` pour macOS et Linux. Commandes : démarrer, démo, vraies données (clé INSEE demandée une fois, rangée dans `.env`), ouvrir, état, arrêter, tout effacer.
+- `Dockerfile` multi-étapes à la racine (Gradle puis Node dans les images) : cibles `api`, `front`, `ingestion-decp`, `ingestion-sirene` ; les Dockerfile sur artefacts préconstruits disparaissent. Ingestions en services du compose (profil `ingestions`), journaux lisibles plutôt que JSON.
+- CI : le job `parcours` suit exactement le chemin du script (`suivons.sh demarrer`, `demo`, puis TS) ; job `script-windows` (encodage, fins de ligne, syntaxe et menu sous Windows PowerShell 5.1 ; pas de Docker Linux sur les exécuteurs Windows).
+- Jeu de démonstration : l'entreprise fictive passe au SIREN `000000000`, inconnu de l'INSEE. `900000001` et `900000019`, présentés comme fictifs dans les fixtures, sont attribués à de vraies sociétés : un rafraîchissement Sirene rattachait l'exemple fictif à une entreprise réelle.
 
 ## Décisions prises
 
@@ -138,4 +145,6 @@ Décisions du 2026-09-28 : lecture du Parquet par DuckDB (le plus simple dans un
 - Compléments du spike en session locale (Recherche d'entreprises, data.gouv.fr, conditions de réutilisation TAM et Kohesio) : `docs/sources/README.md`.
 - **Hébergement de production** : la limite par ASN de l'API Recherche d'entreprises (30 req/s, voire blocage des clouds publics) est un critère de choix (`docs/sources/recherche-entreprises.md`).
 - Quota API Sirene suffisant face aux robots d'indexation (lot 7).
+- Fixtures de test (`fixtures/sirene`, `fixtures/decp`, golden files) : `900000001` et `900000019` ne sont pas fictifs (attribués par l'INSEE) ; à remplacer par des SIREN inconnus de l'INSEE.
+- Hébergement externe (recette en ligne) : choix de l'hébergeur, budget et nom de domaine à trancher.
 - NAF 2025 dans Sirene : l'API 3.11 expose déjà un champ d'activité en NAF 2025 (`activitePrincipaleNAF25UniteLegale`, à confirmer) ; à lire au passage du 1er janvier 2027 (le référentiel accepte déjà `NAF2025`).

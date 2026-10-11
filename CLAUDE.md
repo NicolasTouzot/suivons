@@ -25,7 +25,8 @@ Site citoyen qui trace l'argent public reçu par les entreprises, chaque montant
 /front                Application Angular
 /docs                 Méthodologie, ADR (docs/adr), notes sur les sources (docs/sources)
 /fixtures             Échantillons de données sources pour les tests
-docker-compose.yml    PostgreSQL + stack complète pour le dev et les TS
+docker-compose.yml    PostgreSQL + stack complète pour le dev et les TS (images : Dockerfile à la racine)
+suivons.cmd, suivons.sh  Recette locale en une commande (docs/demarrer-en-local.md)
 ```
 
 ## Versions
@@ -72,14 +73,14 @@ cd front && npm ci                      # dépendances front (Node 24, voir fron
 cd front && npm test                    # TU front (Vitest) ; régénère d'abord le client d'API
 cd front && npm run lint                # ESLint (angular-eslint)
 cd front && npm run e2e                 # TS de fumée Playwright + axe-core (serveur SSR seul)
-./gradlew :api:bootJar && (cd front && npm run build) && docker compose --profile stack up -d --build   # stack complète : API :8080, front :4000
-docker compose exec -T db psql -v ON_ERROR_STOP=1 -U suivons -d suivons < fixtures/demo/parcours.sql   # jeu de démonstration (réinitialise core)
+./suivons.sh demarrer                   # recette locale (suivons.cmd sous Windows) : stack construite dans Docker, API :8080, front :4000
+./suivons.sh demo                       # jeu de démonstration fixtures/demo/parcours.sql (réinitialise core) ; `donnees` : vraies données
 cd front && npm run e2e:parcours        # TS du parcours sur la stack (recherche → fiche → source)
 ```
 
 ## CI
 
-`.github/workflows/ci.yml`, sur chaque pull request et sur `main` : jobs `back` (build, TU, ArchUnit, TI, code jOOQ à jour), `contrat` (lint Redocly), `front` (lint, TU, TS de fumée Playwright + axe-core), `parcours` (stack docker-compose avec le jeu de démonstration, TS du parcours) et `dependances` (`npm audit`, graphe Gradle, revue des vulnérabilités et des licences incompatibles avec l'AGPL sur les PR). Tous bloquants. Dependabot (`.github/dependabot.yml`) propose les mises à jour chaque semaine.
+`.github/workflows/ci.yml`, sur chaque pull request et sur `main` : jobs `back` (build, TU, ArchUnit, TI, code jOOQ à jour), `contrat` (lint Redocly), `front` (lint, TU, TS de fumée Playwright + axe-core), `parcours` (recette locale via `suivons.sh`, jeu de démonstration, TS du parcours), `script-windows` (encodage, syntaxe et menu de `suivons.cmd` sous Windows PowerShell 5.1) et `dependances` (`npm audit`, graphe Gradle, revue des vulnérabilités et des licences incompatibles avec l'AGPL sur les PR). Tous bloquants. Dependabot (`.github/dependabot.yml`) propose les mises à jour chaque semaine.
 
 Branche par défaut : `main`. Toute évolution passe par une PR vers `main` ; fusion uniquement avec la CI verte.
 
