@@ -15,7 +15,7 @@ swagger-request-validator = "3.0.0"
 # Lecture des fichiers de nomenclature NAF de l'INSEE (.xls et .xlsx)
 poi = "5.5.1"
 # Lecture des exports Parquet (DECP)
-duckdb = "1.5.5.1"
+duckdb = "1.5.6.0"
 openapi-generator = "7.25.0"
 # Image PostgreSQL des TI et du codegen jOOQ ; à garder égale à docker-compose.yml
 postgres-image = "18.6"
